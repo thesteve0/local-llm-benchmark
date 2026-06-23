@@ -20,7 +20,7 @@ ramalama serve \
   hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:Q8_0
 ```
 
-The container runs detached by default. Replace the model path with whichever model you want to benchmark.
+The container runs detached by default. Replace the model path with whichever model you want to benchmark. The exact Ramalama serve command for each model under evaluation is documented in its corresponding file under `models/`.
 
 ### Step 3: Run the benchmark
 
