@@ -8,14 +8,14 @@ Implement a bubble sort function for task records.
 
 ## Requirements
 
-Write a single file `BubbleSortTasks.java` containing:
+Write a single file `BubbleSortTasks.java` containing a public class `BubbleSortTasks` with:
 
-1. A `Task` record (or class) with fields:
+1. A **static inner** `Task` record with fields:
    - `String name`
    - `Integer priority` (nullable — use `Integer`, not `int`)
    - `long createdAt`
 
-2. A `SortResult` record (or class) with fields:
+2. A **static inner** `SortResult` record with fields:
    - `List<Task> tasks` — the sorted list
    - `int swapCount` — total swaps performed
 
@@ -39,13 +39,13 @@ Write a single file `BubbleSortTasks.java` containing:
 ### Example
 
 ```java
-List<Task> tasks = List.of(
-    new Task("bug",     3, 1000),
-    new Task("feature", 5, 2000),
-    new Task("docs",    3, 500)
+List<BubbleSortTasks.Task> tasks = List.of(
+    new BubbleSortTasks.Task("bug",     3, 1000),
+    new BubbleSortTasks.Task("feature", 5, 2000),
+    new BubbleSortTasks.Task("docs",    3, 500)
 );
 
-SortResult result = BubbleSortTasks.bubbleSortTasks(tasks);
+BubbleSortTasks.SortResult result = BubbleSortTasks.bubbleSortTasks(tasks);
 // result.tasks() = [Task("feature",5,2000), Task("docs",3,500), Task("bug",3,1000)]
 // result.swapCount() = 2
 ```
@@ -57,161 +57,160 @@ Write clean, well-documented, idiomatic Java code. Use Javadoc where appropriate
 
 Here's a thinking process:
 
-1.  **Understand the Goal**: The user wants a Java implementation of a bubble sort algorithm specifically for a `Task` record. The sorting needs to follow specific rules: primary sort by `priority` descending, tiebreaker by `createdAt` ascending, and `null` priorities go to the end. The output should be a `SortResult` containing the sorted list and the number of swaps. The original list must not be modified.
+1.  **Understand the Goal**: The user wants a Java file `BubbleSortTasks.java` containing a public class `BubbleSortTasks` with specific inner records (`Task`, `SortResult`) and a static method `bubbleSortTasks` that implements bubble sort according to specific rules.
 
 2.  **Analyze Requirements**:
-   - **Records**: `Task` (name: String, priority: Integer, createdAt: long) and `SortResult` (tasks: List<Task>, swapCount: int).
+   - **Class Structure**: `public class BubbleSortTasks`
+   - **Inner Records**:
+     - `Task`: `String name`, `Integer priority`, `long createdAt`
+     - `SortResult`: `List<Task> tasks`, `int swapCount`
    - **Method**: `public static SortResult bubbleSortTasks(List<Task> tasks)`
    - **Sorting Rules**:
-     - Primary: `priority` descending (higher first)
-     - Tiebreaker: `createdAt` ascending (earlier first)
-     - Null priority: always at the end, sorted by `createdAt` ascending among themselves
+     1. Primary: `priority` descending (higher first)
+     2. Tiebreaker: `createdAt` ascending (earlier first)
+     3. Null handling: `priority == null` goes to the end, sorted by `createdAt` ascending among themselves.
    - **Constraints**:
-     - Must use bubble sort
-     - No built-in sorting utilities
-     - Return new list (don't modify input)
-     - Clean, documented, idiomatic Java
+     - Must use bubble sort algorithm.
+     - No built-in sorting utilities (`Collections.sort`, etc.).
+     - Return `SortResult` with sorted list and swap count.
+     - Do not modify the original input list (return a new list).
    - **Example**: Provided to verify logic.
 
-3.  **Design `Task` Record**:
+3.  **Design the Sorting Logic (Bubble Sort)**:
+   - Bubble sort works by repeatedly stepping through the list, comparing adjacent elements, and swapping them if they are in the wrong order.
+   - Need to handle the custom comparison logic.
+   - Comparison logic for two tasks `a` and `b`:
+     - If `a.priority` is null and `b.priority` is not null: `a` should come after `b` → return 1 (or swap needed)
+     - If `a.priority` is not null and `b.priority` is null: `a` should come before `b` → return -1
+     - If both are null: compare by `createdAt` ascending → `Long.compare(a.createdAt, b.createdAt)`
+     - If both are not null: compare by `priority` descending → `Integer.compare(b.priority, a.priority)`. If equal, compare by `createdAt` ascending → `Long.compare(a.createdAt, b.createdAt)`.
+   - Let's formalize the comparator:
+     ```java
+     int compare(Task a, Task b) {
+         boolean aNull = a.priority == null;
+         boolean bNull = b.priority == null;
+         if (aNull && bNull) {
+             return Long.compare(a.createdAt, b.createdAt);
+         }
+         if (aNull) return 1; // a goes after b
+         if (bNull) return -1; // a goes before b
+         // Both non-null
+         int pComp = Integer.compare(b.priority, a.priority); // descending
+         if (pComp != 0) return pComp;
+         return Long.compare(a.createdAt, b.createdAt); // ascending
+     }
+     ```
+   - Bubble sort implementation:
+     - Create a copy of the input list to avoid modifying the original.
+     - Use a flag `swapped` to optimize (stop early if no swaps in a pass).
+     - Loop `i` from 0 to `n-1`, inner loop `j` from 0 to `n-1-i`.
+     - Compare `list.get(j)` and `list.get(j+1)`. If `compare(list.get(j), list.get(j+1)) > 0`, swap and increment `swapCount`.
+     - Return `new SortResult(sortedList, swapCount)`.
+
+4.  **Draft the Code (Mental Refinement)**:
    ```java
-   public record Task(String name, Integer priority, long createdAt) {}
-   ```
-   Wait, the prompt says "record (or class)". I'll use a record as it's modern Java (14+). I should make sure it's immutable and has proper fields.
+   import java.util.ArrayList;
+   import java.util.List;
 
-4.  **Design `SortResult` Record**:
-   ```java
-   public record SortResult(List<Task> tasks, int swapCount) {}
-   ```
+   public class BubbleSortTasks {
 
-5.  **Implement Bubble Sort Logic**:
-   - Need to create a copy of the input list to avoid modifying the original.
-   - Bubble sort typically uses nested loops. Outer loop runs `n-1` times, inner loop runs `n-1-i` times.
-   - Comparison logic needs to handle:
-     - Both priorities non-null
-     - One null, one non-null
-     - Both null
-   - Let's define a comparison function or inline it:
-     - If `p1 == null` and `p2 == null`: compare `createdAt` ascending
-     - If `p1 == null` and `p2 != null`: `p1` should come after `p2` (return 1)
-     - If `p1 != null` and `p2 == null`: `p1` should come before `p2` (return -1)
-     - If both non-null:
-       - If `p1 != p2`: compare descending (`p2 - p1` or `Integer.compare(p2, p1)`)
-       - If `p1 == p2`: compare `createdAt` ascending (`Long.compare(t1.createdAt, t2.createdAt)`)
-   - Bubble sort swaps adjacent elements if they are in the wrong order. So if `compare(t1, t2) > 0`, swap.
-   - Count swaps.
+       public static record Task(String name, Integer priority, long createdAt) {}
 
-   Let's draft the comparison logic carefully:
-   ```java
-   private static int compareTasks(Task t1, Task t2) {
-       boolean p1Null = t1.priority() == null;
-       boolean p2Null = t2.priority() == null;
+       public static record SortResult(List<Task> tasks, int swapCount) {}
 
-       if (p1Null && p2Null) {
-           return Long.compare(t1.createdAt(), t2.createdAt());
-       }
-       if (p1Null) {
-           return 1; // t1 goes after t2
-       }
-       if (p2Null) {
-           return -1; // t1 goes before t2
-       }
-
-       // Both non-null
-       int priorityCmp = Integer.compare(t2.priority(), t1.priority()); // descending
-       if (priorityCmp != 0) {
-           return priorityCmp;
-       }
-       return Long.compare(t1.createdAt(), t2.createdAt()); // ascending
-   }
-   ```
-   Wait, bubble sort swaps if `compareTasks(t1, t2) > 0`. Let's verify:
-   - If `t1` should come after `t2`, `compareTasks` returns positive. We swap. Correct.
-   - Example: `t1` priority 3, `t2` priority 5. `Integer.compare(5, 3)` = 1. Positive -> swap. Correct.
-   - Example: `t1` priority 3, `t2` priority 3, `t1.createdAt` 1000, `t2.createdAt` 500. `priorityCmp` = 0. `Long.compare(1000, 500)` = 1. Positive -> swap. Correct (earlier createdAt should come first).
-   - Example: `t1` priority null, `t2` priority 5. `p1Null` true, `p2Null` false -> returns 1. Positive -> swap. Correct (null goes to end).
-   - Example: `t1` priority 5, `t2` priority null. Returns -1. Negative -> no swap. Correct.
-
-   This comparison logic works perfectly for bubble sort's "swap if out of order" condition.
-
-6.  **Implement Bubble Sort Algorithm**:
-   ```java
-   public static SortResult bubbleSortTasks(List<Task> tasks) {
-       if (tasks == null || tasks.isEmpty()) {
-           return new SortResult(Collections.emptyList(), 0);
-       }
-
-       // Create a mutable copy to avoid modifying the original
-       List<Task> sortedTasks = new ArrayList<>(tasks);
-       int swapCount = 0;
-       int n = sortedTasks.size();
-
-       for (int i = 0; i < n - 1; i++) {
-           boolean swapped = false;
-           for (int j = 0; j < n - 1 - i; j++) {
-               if (compareTasks(sortedTasks.get(j), sortedTasks.get(j + 1)) > 0) {
-                   // Swap
-                   Task temp = sortedTasks.get(j);
-                   sortedTasks.set(j, sortedTasks.get(j + 1));
-                   sortedTasks.set(j + 1, temp);
-                   swapCount++;
-                   swapped = true;
-               }
+       public static SortResult bubbleSortTasks(List<Task> tasks) {
+           if (tasks == null || tasks.size() <= 1) {
+               return new SortResult(tasks == null ? List.of() : List.copyOf(tasks), 0);
            }
-           if (!swapped) break; // Optimization: early exit if no swaps
+
+           // Create a mutable copy to avoid modifying the original
+           List<Task> sorted = new ArrayList<>(tasks);
+           int swapCount = 0;
+           boolean swapped;
+
+           for (int i = 0; i < sorted.size() - 1; i++) {
+               swapped = false;
+               for (int j = 0; j < sorted.size() - 1 - i; j++) {
+                   if (compare(sorted.get(j), sorted.get(j + 1)) > 0) {
+                       // Swap
+                       Task temp = sorted.get(j);
+                       sorted.set(j, sorted.get(j + 1));
+                       sorted.set(j + 1, temp);
+                       swapCount++;
+                       swapped = true;
+                   }
+               }
+               if (!swapped) break;
+           }
+
+           return new SortResult(sorted, swapCount);
        }
 
-       return new SortResult(sortedTasks, swapCount);
+       private static int compare(Task a, Task b) {
+           boolean aNull = a.priority == null;
+           boolean bNull = b.priority == null;
+
+           if (aNull && bNull) {
+               return Long.compare(a.createdAt, b.createdAt);
+           }
+           if (aNull) {
+               return 1; // a should come after b
+           }
+           if (bNull) {
+               return -1; // a should come before b
+           }
+
+           // Both have priorities
+           int priorityCompare = Integer.compare(b.priority, a.priority); // descending
+           if (priorityCompare != 0) {
+               return priorityCompare;
+           }
+           // Tiebreaker: createdAt ascending
+           return Long.compare(a.createdAt, b.createdAt);
+       }
    }
    ```
 
-   Wait, the example says:
-   Input: `Task("bug", 3, 1000)`, `Task("feature", 5, 2000)`, `Task("docs", 3, 500)`
-   Expected output: `[Task("feature",5,2000), Task("docs",3,500), Task("bug",3,1000)]`
-   Expected swapCount: 2
+5.  **Check Against Requirements**:
+   - Single file `BubbleSortTasks.java`? Yes.
+   - Public class `BubbleSortTasks`? Yes.
+   - Static inner `Task` record with `String name`, `Integer priority`, `long createdAt`? Yes.
+   - Static inner `SortResult` record with `List<Task> tasks`, `int swapCount`? Yes.
+   - Static method `bubbleSortTasks(List<Task> tasks)`? Yes.
+   - Sorting rules: priority desc, createdAt asc, null priority to end sorted by createdAt asc? Yes.
+   - Constraints: bubble sort only, no built-in sort, return SortResult, don't modify original? Yes. Used `new ArrayList<>(tasks)` and `List.copyOf()` for null/empty cases.
+   - Example check:
+     Input: `bug(3,1000)`, `feature(5,2000)`, `docs(3,500)`
+     Pass 1:
+     - Compare `bug` vs `feature`: priority 3 vs 5 → 5 > 3, so `feature` should come first. `compare(bug, feature)` → `Integer.compare(5, 3)` = 1 > 0 → swap. List: `feature, bug, docs`. swapCount=1.
+     - Compare `bug` vs `docs`: priority 3 vs 3 → equal. createdAt 1000 vs 500 → `Long.compare(1000, 500)` = 1 > 0 → swap. List: `feature, docs, bug`. swapCount=2.
+     Pass 2:
+     - Compare `feature` vs `docs`: priority 5 vs 3 → 5 > 3 → `compare(feature, docs)` = `Integer.compare(3, 5)` = -1 → no swap.
+     - `swapped` is false? Wait, `swapped` was set to true in pass 1. In pass 2, no swaps occur, so `swapped` remains false, loop breaks.
+     Result: `feature(5,2000), docs(3,500), bug(3,1000)`. swapCount=2. Matches example exactly.
+   - Null handling check:
+     Suppose tasks: `A(null, 100)`, `B(5, 200)`, `C(null, 50)`
+     Pass 1:
+     - `A` vs `B`: `A.priority` null, `B` not → `compare(A,B)` = 1 → swap. List: `B, A, C`. swap=1.
+     - `A` vs `C`: both null → `Long.compare(100, 50)` = 1 → swap. List: `B, C, A`. swap=2.
+     Pass 2:
+     - `B` vs `C`: `B` priority 5, `C` null → `compare(B,C)` = -1 → no swap.
+     Result: `B, C, A`. Correct.
+   - Edge cases: empty list, single element, all null priorities, all same priority. Handled correctly.
+   - Constraints: "Do not modify the original input list — return a new list". `new ArrayList<>(tasks)` creates a shallow copy, which is fine since records are immutable. I should also handle `tasks == null` gracefully, though not strictly required, it's good practice. I'll add a null check or assume non-null as per typical API contracts, but I'll keep it safe.
+   - Javadoc: Add Javadoc for class, records, method, and comparator.
+   - Idiomatic Java: Use records, `List.copyOf()` for immutable returns if needed, but `SortResult` expects a `List<Task>`. The requirement says `List<Task> tasks` in `SortResult`, so returning the `ArrayList` is fine. I'll stick with `ArrayList` for the sorted list.
 
-   Let's trace bubble sort on this:
-   Initial: `[bug(3,1000), feature(5,2000), docs(3,500)]`
-   i=0, j=0: compare bug(3,1000) vs feature(5,2000). priority 3 vs 5. desc -> feature first. compare returns 1. Swap.
-   List: `[feature(5,2000), bug(3,1000), docs(3,500)]`, swaps=1
-   i=0, j=1: compare bug(3,1000) vs docs(3,500). priority equal. createdAt 1000 vs 500. asc -> docs first. compare returns 1. Swap.
-   List: `[feature(5,2000), docs(3,500), bug(3,1000)]`, swaps=2
-   i=1, j=0: compare feature(5,2000) vs docs(3,500). priority 5 vs 3. desc -> feature first. compare returns -1. No swap.
-   End. Total swaps = 2. Matches example!
+   One minor point: The requirement says `List<Task> tasks` in `SortResult`. I'll just return the `ArrayList` directly. It's fine.
 
-   The algorithm works correctly.
-
-7.  **Consider Edge Cases & Constraints**:
-   - Null input list? The prompt says `List<Task> tasks`. I'll handle null gracefully or assume non-null per typical API contracts, but adding a null check is safe.
-   - Empty list? Handled.
-   - Single element? Handled.
-   - All null priorities? Handled.
-   - The constraint says "Do not modify the original input list — return a new list". `new ArrayList<>(tasks)` does exactly that.
-   - "You must implement the bubble sort algorithm — do not use Collections.sort()..." Checked.
-   - "Return a SortResult with the sorted list and total swap count". Checked.
-   - "Use Javadoc where appropriate". I'll add Javadoc to the class, records, and method.
-
-   One minor point: `List.of()` returns an immutable list. `new ArrayList<>(tasks)` creates a mutable copy. That's fine.
-   Should I make `Task` and `SortResult` public? Yes.
-   Should I put them in the same file? Yes, "Write a single file `BubbleSortTasks.java`". In Java, only one public class per file, so I'll make `BubbleSortTasks` the public class, and `Task` and `SortResult` package-private or static nested. Actually, records can be top-level in the same file if only one is public. I'll make `Task` and `SortResult` static nested records inside `BubbleSortTasks` to keep it in one file cleanly, or just top-level non-public records. The prompt says "Write a single file `BubbleSortTasks.java` containing: 1. A Task record... 2. A SortResult record... 3. A static method...". I'll make them static nested for simplicity, or just separate top-level classes in the same file (Java allows multiple non-public top-level classes in one file). I'll go with static nested to avoid filename conflicts, but the prompt says "containing: 1. A Task record...". I'll just define them as static nested records inside `BubbleSortTasks`. Actually, it's cleaner to make them top-level but non-public, or just static nested. I'll stick to static nested for a single-file submission, but I'll make sure the structure matches the prompt.
-
-   Wait, the prompt says:
-   ```java
-   public record Task(String name, Integer priority, long createdAt) {}
-   public record SortResult(List<Task> tasks, int swapCount) {}
-   public static SortResult bubbleSortTasks(List<Task> tasks)
-   ```
-   I'll define them as static nested records inside `BubbleSortTasks` to keep it strictly one file with one public class. Or I can just make them top-level non-public. I'll go with static nested for simplicity.
-
-   Let's draft the full code:
+   Let's refine the code structure with proper Javadoc and formatting.
 
    ```java
    import java.util.ArrayList;
-   import java.util.Collections;
    import java.util.List;
 
    /**
-    * Provides a bubble sort implementation for sorting Task records based on
+    * Provides a bubble sort implementation for sorting task records based on
     * priority and creation timestamp.
     */
    public class BubbleSortTasks {
@@ -222,34 +221,41 @@ Here's a thinking process:
        public static record Task(String name, Integer priority, long createdAt) {}
 
        /**
-        * Holds the result of a sorting operation, including the sorted list and swap count.
+        * Holds the result of a bubble sort operation on tasks.
         */
        public static record SortResult(List<Task> tasks, int swapCount) {}
 
        /**
         * Sorts a list of tasks using the bubble sort algorithm.
         *
+        * <p>Sorting rules:
+        * <ol>
+        *   <li>Primary: Priority descending (higher priority first)</li>
+        *   <li>Tiebreaker: Creation timestamp ascending (earlier first)</li>
+        *   <li>Null priorities are sorted to the end, ordered by timestamp ascending</li>
+        * </ol>
+        *
         * @param tasks the list of tasks to sort
-        * @return a SortResult containing the sorted list and the total number of swaps performed
+        * @return a {@link SortResult} containing the sorted list and the total number of swaps
         */
        public static SortResult bubbleSortTasks(List<Task> tasks) {
            if (tasks == null || tasks.isEmpty()) {
-               return new SortResult(Collections.emptyList(), 0);
+               return new SortResult(List.of(), 0);
            }
 
            // Create a mutable copy to ensure the original list is not modified
-           List<Task> sortedTasks = new ArrayList<>(tasks);
+           List<Task> sorted = new ArrayList<>(tasks);
            int swapCount = 0;
-           int n = sortedTasks.size();
+           boolean swapped;
 
-           for (int i = 0; i < n - 1; i++) {
-               boolean swapped = false;
-               for (int j = 0; j < n - 1 - i; j++) {
-                   if (compareTasks(sortedTasks.get(j), sortedTasks.get(j + 1)) > 0) {
+           for (int i = 0; i < sorted.size() - 1; i++) {
+               swapped = false;
+               for (int j = 0; j < sorted.size() - 1 - i; j++) {
+                   if (compareTasks(sorted.get(j), sorted.get(j + 1)) > 0) {
                        // Swap adjacent elements
-                       Task temp = sortedTasks.get(j);
-                       sortedTasks.set(j, sortedTasks.get(j + 1));
-                       sortedTasks.set(j + 1, temp);
+                       Task temp = sorted.get(j);
+                       sorted.set(j, sorted.get(j + 1));
+                       sorted.set(j + 1, temp);
                        swapCount++;
                        swapped = true;
                    }
@@ -260,231 +266,242 @@ Here's a thinking process:
                }
            }
 
-           return new SortResult(sortedTasks, swapCount);
+           return new SortResult(sorted, swapCount);
        }
 
        /**
-        * Compares two tasks to determine their relative order for sorting.
-        * Returns a positive value if t1 should come after t2, negative if before, zero if equal.
+        * Compares two tasks according to the sorting rules.
+        *
+        * @param a the first task
+        * @param b the second task
+        * @return negative if a should come before b, positive if a should come after b, zero if equal
         */
-       private static int compareTasks(Task t1, Task t2) {
-           boolean p1Null = t1.priority() == null;
-           boolean p2Null = t2.priority() == null;
+       private static int compareTasks(Task a, Task b) {
+           boolean aNull = a.priority == null;
+           boolean bNull = b.priority == null;
 
-           // Both have null priority: sort by createdAt ascending
-           if (p1Null && p2Null) {
-               return Long.compare(t1.createdAt(), t2.createdAt());
+           // Both have null priorities: sort by createdAt ascending
+           if (aNull && bNull) {
+               return Long.compare(a.createdAt, b.createdAt);
            }
-           // t1 has null priority, t2 does not: t1 goes after t2
-           if (p1Null) {
+           // a has null priority, b does not: a goes after b
+           if (aNull) {
                return 1;
            }
-           // t2 has null priority, t1 does not: t1 goes before t2
-           if (p2Null) {
+           // b has null priority, a does not: a goes before b
+           if (bNull) {
                return -1;
            }
 
-           // Both have non-null priorities: sort descending
-           int priorityCmp = Integer.compare(t2.priority(), t1.priority());
-           if (priorityCmp != 0) {
-               return priorityCmp;
+           // Both have priorities: sort by priority descending
+           int priorityCompare = Integer.compare(b.priority, a.priority);
+           if (priorityCompare != 0) {
+               return priorityCompare;
            }
 
            // Priorities are equal: sort by createdAt ascending
-           return Long.compare(t1.createdAt(), t2.createdAt());
+           return Long.compare(a.createdAt, b.createdAt);
        }
    }
    ```
 
-8.  **Review & Refine**:
-   - Check constraints: "Do not modify the original input list — return a new list". `new ArrayList<>(tasks)` creates a shallow copy. Since `Task` is a record (immutable), shallow copy is fine.
-   - Check sorting rules: Primary priority desc, tiebreaker createdAt asc, null priority at end sorted by createdAt asc. All handled correctly in `compareTasks`.
-   - Check bubble sort: Standard implementation with early exit optimization. Counts swaps correctly.
+6.  **Self-Correction/Verification**:
+   - Check record syntax: `public static record Task(String name, Integer priority, long createdAt) {}` - valid in Java 14+.
+   - Check `SortResult` record: `public static record SortResult(List<Task> tasks, int swapCount) {}` - valid.
+   - Check method signature: `public static SortResult bubbleSortTasks(List<Task> tasks)` - matches.
+   - Check sorting rules: All implemented correctly in `compareTasks`.
+   - Check constraints: Bubble sort used, no built-in sort, returns new list, counts swaps.
    - Check example: Matches exactly.
-   - Check Java idioms: Uses records, `Integer.compare`, `Long.compare`, proper Javadoc, early exit optimization, defensive copying.
-   - One thing: `Collections.emptyList()` is fine, but maybe `List.of()` is better for modern Java? `Collections.emptyList()` is fine. I'll stick with it or use `List.of()`. Actually, `Collections.emptyList()` is standard.
-   - Should I make `Task` and `SortResult` top-level or static nested? The prompt says "Write a single file `BubbleSortTasks.java` containing: 1. A Task record... 2. A SortResult record... 3. A static method...". It's common to put them as static nested records in a single-file submission. I'll keep them static nested. Alternatively, I can make them top-level non-public classes. I'll stick with static nested for cleanliness, but I'll add a comment if needed. Actually, Java allows multiple top-level classes in one file as long as only one is public. I'll make `Task` and `SortResult` top-level non-public to strictly follow "containing: 1. A Task record...". But static nested is fine too. I'll go with static nested to avoid any confusion about file structure. Actually, the prompt says "A Task record (or class) with fields...". I'll just define them as static nested records inside `BubbleSortTasks`. It's standard for single-file coding challenges.
-
-   Let's double check the `compareTasks` logic for nulls:
-   If `t1.priority() == null` and `t2.priority() == null`, we compare `createdAt` ascending. Correct.
-   If `t1.priority() == null` and `t2.priority() != null`, we return 1, meaning `t1` > `t2`, so they swap. `t1` moves right. Correct.
-   If `t1.priority() != null` and `t2.priority() == null`, we return -1, meaning `t1` < `t2`, no swap. `t1` stays left. Correct.
-   All good.
-
-   One minor point: `Integer.compare(t2.priority(), t1.priority())` for descending. If `t2.priority()` is 5 and `t1.priority()` is 3, `compare(5, 3)` is 1. Positive -> swap. Correct.
-   If `t2.priority()` is 3 and `t1.priority()` is 5, `compare(3, 5)` is -1. Negative -> no swap. Correct.
-
-   The code looks solid. I'll add proper imports and ensure formatting is clean.
-   I'll also consider if `List<Task>` should be unmodifiable in the result? The prompt says "return a new list", doesn't specify immutability. `ArrayList` is fine.
-
-   Let's verify the example manually again with the code:
-   Input: `[bug(3,1000), feature(5,2000), docs(3,500)]`
-   i=0:
-     j=0: compare(bug, feature) -> p1=3, p2=5 -> compare(5,3)=1 > 0 -> swap. List: `[feature, bug, docs]`, swaps=1
-     j=1: compare(bug, docs) -> p1=3, p2=3 -> priorityCmp=0 -> compare(1000,500)=1 > 0 -> swap. List: `[feature, docs, bug]`, swaps=2
-   i=1:
-     j=0: compare(feature, docs) -> p1=5, p2=3 -> compare(3,5)=-1 -> no swap.
-   Loop ends. Result: `[feature, docs, bug]`, swaps=2. Matches example exactly.
-
-   One detail: `List.of()` in the example creates an immutable list. `new ArrayList<>(tasks)` handles it fine.
-   I'll make sure the code compiles mentally:
-   - `import java.util.ArrayList;`
-   - `import java.util.Collections;`
-   - `import java.util.List;`
-   - Records are Java 14+, but widely supported. The prompt says "record (or class)", so records are fine.
-   - `Integer.compare` and `Long.compare` are Java 7+.
+   - Check null handling: `tasks == null` handled. `priority == null` handled.
+   - Javadoc: Added appropriately.
+   - One detail: `List.copyOf(tasks)` vs `new ArrayList<>(tasks)`. The requirement says "Do not modify the original input list — return a new list". `new ArrayList<>(tasks)` is fine. I'll stick with it.
+   - Should I make the records `public static record ...` or just `static record ...`? The prompt says "static inner `Task` record", I'll make them `public static record` to match typical Java conventions, but the prompt doesn't specify visibility. I'll keep them `public static record` as it's standard.
+   - Wait, the prompt says: "A **static inner** `Task` record with fields...". I'll use `public static record Task(...)`.
+   - Check imports: `java.util.ArrayList`, `java.util.List`.
+   - Check bubble sort optimization: `if (!swapped) break;` is standard and good.
+   - Check swap counting: Only increments on actual swaps. Matches example.
    - All good.
 
-   I will structure the final output exactly as requested. I'll put `Task` and `SortResult` as static nested records for a single-file solution, but I'll also mention they can be top-level if preferred. Actually, I'll just make them top-level non-public classes in the same file to strictly match "containing: 1. A Task record... 2. A SortResult record...". Java allows this. I'll stick to static nested for simplicity, it's standard.
+   One minor thing: The prompt says `List<Task> tasks` in `SortResult`. I'm returning an `ArrayList`. That's fine since `ArrayList` implements `List`. If they want an immutable list, they didn't specify. I'll leave it as `ArrayList`.
 
-   Wait, the prompt says:
-   ```java
-   public record Task(String name, Integer priority, long createdAt) {}
-   public record SortResult(List<Task> tasks, int swapCount) {}
-   public static SortResult bubbleSortTasks(List<Task> tasks)
-   ```
-   This implies they might be top-level. I'll make them top-level non-public records in the same file. It's cleaner.
+   Let's double check the null priority sorting rule: "tasks where `priority` is `null` always sort to the end of the list, ordered by `createdAt` ascending among themselves". My comparator handles this: if both null, compare createdAt. If one null, null goes after. This correctly places all nulls at the end, sorted by createdAt.
 
-   Let's draft it carefully.
+   Example trace again:
+   Input: `bug(3,1000)`, `feature(5,2000)`, `docs(3,500)`
+   Pass 1:
+   j=0: `bug` vs `feature`. `compare(bug, feature)` -> priorities 3 vs 5 -> `Integer.compare(5, 3)` = 1 > 0 -> swap. List: `feature, bug, docs`. swaps=1.
+   j=1: `bug` vs `docs`. priorities 3 vs 3 -> equal. createdAt 1000 vs 500 -> `Long.compare(1000, 500)` = 1 > 0 -> swap. List: `feature, docs, bug`. swaps=2.
+   Pass 2:
+   j=0: `feature` vs `docs`. priorities 5 vs 3 -> `Integer.compare(3, 5)` = -1 -> no swap.
+   swapped=false -> break.
+   Result matches example.
 
+   Everything looks solid. I will produce the final code.
+   I'll add a brief comment about Java version compatibility (records require Java 14+, but that's standard now). The code is clean and idiomatic.
+   One thing: `List<Task> tasks` in `SortResult` might be better as `List<Task> tasks` (already is). I'll keep it.
+   I'll format it properly.
+   Ready.✅
+   Output matches the requested structure.
+   I will generate the response now. 
+   Self-Correction/Refinement during thought: 
+   Should I handle `tasks == null`? The prompt doesn't specify, but it's safe to handle it. I'll keep the null check.
+   The prompt says "Do not modify the original input list — return a new list". `new ArrayList<>(tasks)` satisfies this.
+   All constraints met.
+   Code structure:
    ```java
    import java.util.ArrayList;
-   import java.util.Collections;
+   import java.util.List;
+
+   public class BubbleSortTasks {
+       // records
+       // method
+       // comparator
+   }
+   ```
+   Looks good. I'll output it. 
+   One minor point: `Integer.compare(b.priority, a.priority)` for descending. Correct.
+   `Long.compare(a.createdAt, b.createdAt)` for ascending. Correct.
+   Null handling logic is sound.
+   I'll produce the final answer. 
+   Output matches exactly.✅
+   Proceeds. 
+   [Output Generation] -> *See response.* 
+   All steps verified. No hidden traps detected. The bubble sort implementation is standard with an early-exit optimization. The comparator correctly implements the three rules. Records are used as specified. Javadoc is included. Constraints are strictly followed. Example matches. Ready. 
+   *Self-Correction/Note during generation prep*: 
+   I should ensure the class name matches exactly `BubbleSortTasks` and the file name would be `BubbleSortTasks.java`. The prompt says "Write a single file `BubbleSortTasks.java` containing a public class `BubbleSortTasks`". I'll provide exactly that.
+   I'll also make sure the records are `public static record` as is standard, but the prompt says "static inner `Task` record". I'll stick with `public static record`.
+   All good. 
+   Output matches response. 
+   [Done] 
+   *Output Generation* (matches the final code block in the response)
+   ```java
+   import java.util.ArrayList;
    import java.util.List;
 
    /**
-    * Represents a task with a name, optional priority, and creation timestamp.
-    */
-   record Task(String name, Integer priority, long createdAt) {}
-
-   /**
-    * Holds the result of a sorting operation, including the sorted list and swap count.
-    */
-   record SortResult(List<Task> tasks, int swapCount) {}
-
-   /**
-    * Provides a bubble sort implementation for sorting Task records based on
+    * Provides a bubble sort implementation for sorting task records based on
     * priority and creation timestamp.
     */
    public class BubbleSortTasks {
 
        /**
-        * Sorts a list of tasks using the bubble sort algorithm.
-        *
-        * @param tasks the list of tasks to sort
-        * @return a SortResult containing the sorted list and the total number of swaps performed
+        * Represents a task with a name, optional priority, and creation timestamp.
         */
-       public static SortResult bubbleSortTasks(List<Task> tasks) {
-           // ... implementation
-       }
-
-       // ... compareTasks
-   }
-   ```
-   This works. I'll proceed with this structure.
-
-   One thing: `List.of()` in the example uses `new Task(...)`. Records generate constructors automatically. So `new Task("bug", 3, 1000)` works.
-
-   Final check of the prompt: "Do not modify the original input list — return a new list". `new ArrayList<>(tasks)` does this.
-   "You must implement the bubble sort algorithm — do not use Collections.sort()..." Checked.
-   "Return a SortResult with the sorted list and total swap count". Checked.
-   "Write clean, well-documented, idiomatic Java code. Use Javadoc where appropriate." Checked.
-
-   I'll add comments explaining the bubble sort steps and the comparison logic. I'll also ensure the code handles edge cases like null input gracefully.
-
-   One minor improvement: Instead of `Collections.emptyList()`, I can just return `new SortResult(List.of(), 0)` or handle null/empty at the start. I'll keep `Collections.emptyList()` or `List.of()`. `List.of()` is fine.
-
-   Let's write out the full solution. 
-   I'll make sure the comparison logic is clearly documented.
-   I'll verify the swap counting: bubble sort typically counts each swap. The example says 2 swaps for 3 elements, which matches my trace.
-   All good.
-   Output matches requirements.
-   Proceed. 
-   Self-Correction/Refinement during thought:
-   Should I make `Task` and `SortResult` public? The prompt says "A Task record (or class) with fields...". It doesn't specify visibility. I'll make them package-private (default) to keep the file clean, or public if needed. I'll stick with default visibility for records, and public for the main class. Actually, in Java, if they are in the same file, they can be top-level. I'll make them `public static record` inside `BubbleSortTasks` to avoid any file naming issues and keep everything self-contained. The prompt says "Write a single file `BubbleSortTasks.java` containing: 1. A Task record...". Static nested is perfectly fine and often preferred in single-file submissions. I'll go with static nested.
-
-   Actually, I'll just define them as static nested records. It's cleaner.
-
-   Code structure:
-   ```java
-   import java.util.ArrayList;
-   import java.util.Collections;
-   import java.util.List;
-
-   public class BubbleSortTasks {
-
        public static record Task(String name, Integer priority, long createdAt) {}
 
+       /**
+        * Holds the result of a bubble sort operation on tasks.
+        */
        public static record SortResult(List<Task> tasks, int swapCount) {}
 
-       public static SortResult bubbleSortTasks(List<Task> tasks) { ... }
+       /**
+        * Sorts a list of tasks using the bubble sort algorithm.
+        *
+        * <p>Sorting rules:
+        * <ol>
+        *   <li>Primary: Priority descending (higher priority first)</li>
+        *   <li>Tiebreaker: Creation timestamp ascending (earlier first)</li>
+        *   <li>Null priorities are sorted to the end, ordered by timestamp ascending</li>
+        * </ol>
+        *
+        * @param tasks the list of tasks to sort
+        * @return a {@link SortResult} containing the sorted list and the total number of swaps
+        */
+       public static SortResult bubbleSortTasks(List<Task> tasks) {
+           if (tasks == null || tasks.isEmpty()) {
+               return new SortResult(List.of(), 0);
+           }
 
-       private static int compareTasks(Task t1, Task t2) { ... }
+           // Create a mutable copy to ensure the original list is not modified
+           List<Task> sorted = new ArrayList<>(tasks);
+           int swapCount = 0;
+           boolean swapped;
+
+           for (int i = 0; i < sorted.size() - 1; i++) {
+               swapped = false;
+               for (int j = 0; j < sorted.size() - 1 - i; j++) {
+                   if (compareTasks(sorted.get(j), sorted.get(j + 1)) > 0) {
+                       // Swap adjacent elements
+                       Task temp = sorted.get(j);
+                       sorted.set(j, sorted.get(j + 1));
+                       sorted.set(j + 1, temp);
+                       swapCount++;
+                       swapped = true;
+                   }
+               }
+               // If no swaps occurred, the list is already sorted
+               if (!swapped) {
+                   break;
+               }
+           }
+
+           return new SortResult(sorted, swapCount);
+       }
+
+       /**
+        * Compares two tasks according to the sorting rules.
+        *
+        * @param a the first task
+        * @param b the second task
+        * @return negative if a should come before b, positive if a should come after b, zero if equal
+        */
+       private static int compareTasks(Task a, Task b) {
+           boolean aNull = a.priority == null;
+           boolean bNull = b.priority == null;
+
+           // Both have null priorities: sort by createdAt ascending
+           if (aNull && bNull) {
+               return Long.compare(a.createdAt, b.createdAt);
+           }
+           // a has null priority, b does not: a goes after b
+           if (aNull) {
+               return 1;
+           }
+           // b has null priority, a does not: a goes before b
+           if (bNull) {
+               return -1;
+           }
+
+           // Both have priorities: sort by priority descending
+           int priorityCompare = Integer.compare(b.priority, a.priority);
+           if (priorityCompare != 0) {
+               return priorityCompare;
+           }
+
+           // Priorities are equal: sort by createdAt ascending
+           return Long.compare(a.createdAt, b.createdAt);
+       }
    }
    ```
-   This is standard and clean.
-
-   One detail: `Integer.compare(t2.priority(), t1.priority())` works, but `t2.priority() - t1.priority()` could overflow if priorities are extreme, but `Integer.compare` is safe. I'll stick with `Integer.compare`.
-
-   All set. Generating response. 
-   I will produce the complete Java code block as requested. I'll add comprehensive Javadoc and comments. I'll ensure it strictly follows the constraints. No extra fluff.
-   Ready. 
-   Output matches the final code.✅
-   Self-Correction/Verification during generation prep:
-   - Check constraint: "Do not modify the original input list — return a new list". `new ArrayList<>(tasks)` creates a new list. The elements are references to the same Task objects, but since Task is a record (immutable), this is safe and standard. If they wanted deep copy, they'd specify, but typically shallow copy of immutable objects is fine. I'll note it if needed, but it's standard.
-   - Check constraint: "bubble sort algorithm". Implemented with O(n^2) nested loops, early exit optimization.
-   - Check constraint: "null handling". Handled correctly.
-   - Example matches.
-   - All good.
+   All checks passed. Output matches.✅
    Proceeds. 
-   Output generation. 
-   [Done] 
-   *Self-Correction/Note during thought*: 
-   Wait, `List.of()` in the example creates an immutable list. `new ArrayList<>(tasks)` works fine. 
-   I'll make sure the code compiles mentally one last time.
-   `import java.util.ArrayList;`
-   `import java.util.Collections;`
-   `import java.util.List;`
-   `public class BubbleSortTasks { ... }`
-   All imports are there.
-   The method signature matches exactly.
-   The records match exactly.
-   The sorting rules match exactly.
-   The constraints match exactly.
-   Ready. 
-   Output matches the response. 
-   [Proceeds]
+   [Final Check of the Prompt]: "Write a single file `BubbleSortTasks.java` containing a public class `BubbleSortTasks` with: 1. A **static inner** `Task` record... 2. A **static inner** `SortResult` record... 3. A static method..."
+   Everything matches. I will output the code block. 
+   One minor thing: `List.of()` returns an immutable list, which is fine for the empty case. The requirement says `List<Task> tasks` in `SortResult`, so it's compatible.
+   All good. 
+   Output matches response. 
+   [Done]
 
 
 ## Response
 
-Here is the complete, single-file implementation meeting all your requirements:
-
 ```java
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
- * Provides a bubble sort implementation for sorting Task records based on
+ * Provides a bubble sort implementation for sorting task records based on
  * priority and creation timestamp.
  */
 public class BubbleSortTasks {
 
     /**
      * Represents a task with a name, optional priority, and creation timestamp.
-     *
-     * @param name       the name of the task
-     * @param priority   the priority level (null tasks sort to the end)
-     * @param createdAt  the timestamp when the task was created
      */
     public static record Task(String name, Integer priority, long createdAt) {}
 
     /**
-     * Holds the result of a sorting operation, including the sorted list and swap count.
-     *
-     * @param tasks      the sorted list of tasks
-     * @param swapCount  the total number of swaps performed during sorting
+     * Holds the result of a bubble sort operation on tasks.
      */
     public static record SortResult(List<Task> tasks, int swapCount) {}
 
@@ -495,92 +512,83 @@ public class BubbleSortTasks {
      * <ol>
      *   <li>Primary: Priority descending (higher priority first)</li>
      *   <li>Tiebreaker: Creation timestamp ascending (earlier first)</li>
-     *   <li>Null priorities always sort to the end, ordered by timestamp ascending</li>
+     *   <li>Null priorities are sorted to the end, ordered by timestamp ascending</li>
      * </ol>
      *
      * @param tasks the list of tasks to sort
-     * @return a SortResult containing the sorted list and the total number of swaps performed
+     * @return a {@link SortResult} containing the sorted list and the total number of swaps
      */
     public static SortResult bubbleSortTasks(List<Task> tasks) {
         if (tasks == null || tasks.isEmpty()) {
-            return new SortResult(Collections.emptyList(), 0);
+            return new SortResult(List.of(), 0);
         }
 
-        // Create a mutable copy to ensure the original list is never modified
-        List<Task> sortedTasks = new ArrayList<>(tasks);
+        // Create a mutable copy to ensure the original list is not modified
+        List<Task> sorted = new ArrayList<>(tasks);
         int swapCount = 0;
-        int n = sortedTasks.size();
+        boolean swapped;
 
-        // Standard bubble sort with early-exit optimization
-        for (int i = 0; i < n - 1; i++) {
-            boolean swapped = false;
-            for (int j = 0; j < n - 1 - i; j++) {
-                // If adjacent elements are out of order, swap them
-                if (compareTasks(sortedTasks.get(j), sortedTasks.get(j + 1)) > 0) {
-                    Task temp = sortedTasks.get(j);
-                    sortedTasks.set(j, sortedTasks.get(j + 1));
-                    sortedTasks.set(j + 1, temp);
+        for (int i = 0; i < sorted.size() - 1; i++) {
+            swapped = false;
+            for (int j = 0; j < sorted.size() - 1 - i; j++) {
+                if (compareTasks(sorted.get(j), sorted.get(j + 1)) > 0) {
+                    // Swap adjacent elements
+                    Task temp = sorted.get(j);
+                    sorted.set(j, sorted.get(j + 1));
+                    sorted.set(j + 1, temp);
                     swapCount++;
                     swapped = true;
                 }
             }
-            // If no swaps occurred in a pass, the list is already sorted
+            // If no swaps occurred, the list is already sorted
             if (!swapped) {
                 break;
             }
         }
 
-        return new SortResult(sortedTasks, swapCount);
+        return new SortResult(sorted, swapCount);
     }
 
     /**
-     * Compares two tasks to determine their relative order for sorting.
+     * Compares two tasks according to the sorting rules.
      *
-     * @return positive if t1 should come after t2, negative if before, zero if equal
+     * @param a the first task
+     * @param b the second task
+     * @return negative if a should come before b, positive if a should come after b, zero if equal
      */
-    private static int compareTasks(Task t1, Task t2) {
-        boolean p1Null = t1.priority() == null;
-        boolean p2Null = t2.priority() == null;
+    private static int compareTasks(Task a, Task b) {
+        boolean aNull = a.priority == null;
+        boolean bNull = b.priority == null;
 
-        // Both have null priority: sort by createdAt ascending
-        if (p1Null && p2Null) {
-            return Long.compare(t1.createdAt(), t2.createdAt());
+        // Both have null priorities: sort by createdAt ascending
+        if (aNull && bNull) {
+            return Long.compare(a.createdAt, b.createdAt);
         }
-        // t1 has null priority, t2 does not: t1 goes after t2
-        if (p1Null) {
+        // a has null priority, b does not: a goes after b
+        if (aNull) {
             return 1;
         }
-        // t2 has null priority, t1 does not: t1 goes before t2
-        if (p2Null) {
+        // b has null priority, a does not: a goes before b
+        if (bNull) {
             return -1;
         }
 
-        // Both have non-null priorities: sort descending
-        int priorityCmp = Integer.compare(t2.priority(), t1.priority());
-        if (priorityCmp != 0) {
-            return priorityCmp;
+        // Both have priorities: sort by priority descending
+        int priorityCompare = Integer.compare(b.priority, a.priority);
+        if (priorityCompare != 0) {
+            return priorityCompare;
         }
 
         // Priorities are equal: sort by createdAt ascending
-        return Long.compare(t1.createdAt(), t2.createdAt());
+        return Long.compare(a.createdAt, b.createdAt);
     }
 }
 ```
 
-### Key Implementation Details:
-1. **Immutability & Safety**: Uses `new ArrayList<>(tasks)` to create a shallow copy. Since `Task` is a record (immutable), this safely prevents modification of the original input while maintaining reference efficiency.
-2. **Bubble Sort Optimization**: Includes the standard `swapped` flag early-exit. If a full pass completes without swaps, the algorithm terminates immediately, improving best-case performance to `O(n)`.
-3. **Comparison Logic**: Centralized in `compareTasks()` to keep the sorting loop clean. Handles all three sorting rules explicitly:
-   - Null priorities are pushed to the end using simple `1`/`-1` returns.
-   - Non-null priorities use `Integer.compare(t2, t1)` for descending order.
-   - Timestamps use `Long.compare()` for ascending order.
-4. **Swap Counting**: Increments exactly once per actual element swap, matching the example output.
-5. **Modern Java**: Leverages records, `Integer.compare`, `Long.compare`, and standard library collections for idiomatic, readable code. Javadoc covers all public APIs and complex logic.
-
 ## Timings
 
-- Time to first token: 0.53s
-- Total generation: 133.66s
-- Reasoning tokens: 5610
-- Answer tokens: 1269
-- Total tokens: 6879
+- Time to first token: 0.75s
+- Total generation: 117.24s
+- Reasoning tokens: 5220
+- Answer tokens: 828
+- Total tokens: 6048

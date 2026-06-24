@@ -24,6 +24,11 @@ The `run_tests.py` script auto-generates a blank scorecard with test results pre
 | Edge Cases | 4 | All edge cases pass, but has an explicit `if len(tasks) <= 1: return` guard that isn't needed — the loop naturally handles it. |
 | **Total** | **20 / 25** | |
 
+### Evaluation
+
+- **Evaluator:** Jane Smith
+- **Date:** 2026-06-20
+
 ### Overall Notes
 
 Solid implementation. The main weakness is documentation — the docstring doesn't explain the sorting rules, which matters for a function with non-obvious behavior (priority descending, None to end). A reader would have to read the comparison logic to understand what the function does.

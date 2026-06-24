@@ -1,54 +1,52 @@
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Represents a task with a name, optional priority, and creation timestamp.
- */
-record Task(String name, Integer priority, long createdAt) {}
-
-/**
- * Holds the result of sorting tasks, including the sorted list and the number of swaps performed.
- */
-record SortResult(List<Task> tasks, int swapCount) {}
-
-/**
- * Provides bubble sort functionality for {@link Task} records.
- */
 public class BubbleSortTasks {
+
+    /**
+     * Represents a task with a name, optional priority, and creation timestamp.
+     */
+    public static record Task(String name, Integer priority, long createdAt) {}
+
+    /**
+     * Represents the result of a bubble sort operation on tasks.
+     */
+    public static record SortResult(List<Task> tasks, int swapCount) {}
 
     /**
      * Sorts a list of tasks using the bubble sort algorithm.
      *
      * <p>Sorting rules:
      * <ol>
-     *   <li>Primary: descending by {@code priority} (higher priority first)</li>
-     *   <li>Tiebreaker: ascending by {@code createdAt} (earlier timestamp first)</li>
-     *   <li>Null handling: tasks with {@code null} priority are placed at the end,
+     *   <li>Primary: {@code priority} descending (higher priority first)</li>
+     *   <li>Tiebreaker: {@code createdAt} ascending (earlier timestamp first)</li>
+     *   <li>Null handling: tasks with {@code null} priority sort to the end, 
      *       ordered by {@code createdAt} ascending among themselves</li>
      * </ol>
      *
      * @param tasks the list of tasks to sort
-     * @return a {@link SortResult} containing the sorted list and total swap count
-     * @throws IllegalArgumentException if {@code tasks} is null
+     * @return a {@link SortResult} containing the sorted list and the total number of swaps performed
      */
     public static SortResult bubbleSortTasks(List<Task> tasks) {
-        if (tasks == null) {
-            throw new IllegalArgumentException("Input list cannot be null");
+        if (tasks == null || tasks.isEmpty()) {
+            return new SortResult(new ArrayList<>(), 0);
         }
 
-        // Create a defensive copy to avoid modifying the original list
-        List<Task> sorted = new ArrayList<>(tasks);
+        // Create a mutable copy to strictly avoid modifying the original input list
+        List<Task> sortedTasks = new ArrayList<>(tasks);
         int swapCount = 0;
-        int n = sorted.size();
+        boolean swapped;
 
-        for (int i = 0; i < n - 1; i++) {
-            boolean swapped = false;
-            for (int j = 0; j < n - 1 - i; j++) {
-                if (shouldSwap(sorted.get(j), sorted.get(j + 1))) {
+        for (int i = 0; i < sortedTasks.size() - 1; i++) {
+            swapped = false;
+            for (int j = 0; j < sortedTasks.size() - 1 - i; j++) {
+                Task current = sortedTasks.get(j);
+                Task next = sortedTasks.get(j + 1);
+
+                if (shouldSwap(current, next)) {
                     // Swap adjacent elements
-                    Task temp = sorted.get(j);
-                    sorted.set(j, sorted.get(j + 1));
-                    sorted.set(j + 1, temp);
+                    sortedTasks.set(j, next);
+                    sortedTasks.set(j + 1, current);
                     swapCount++;
                     swapped = true;
                 }
@@ -59,52 +57,41 @@ public class BubbleSortTasks {
             }
         }
 
-        return new SortResult(sorted, swapCount);
+        return new SortResult(sortedTasks, swapCount);
     }
 
     /**
-     * Determines if task {@code a} should be swapped with task {@code b}
-     * to maintain the correct sort order.
+     * Determines if the first task should be swapped with the second task
+     * based on the specified sorting rules.
      *
      * @param a the first task
      * @param b the second task
-     * @return {@code true} if {@code a} should come after {@code b} in the sorted list
+     * @return true if {@code a} should come after {@code b} (triggering a swap), false otherwise
      */
     private static boolean shouldSwap(Task a, Task b) {
-        return compareTasks(a, b) > 0;
-    }
-
-    /**
-     * Compares two tasks according to the specified sorting rules.
-     *
-     * @return negative if {@code a} should come before {@code b},
-     *         zero if they are equivalent in sort order,
-     *         positive if {@code a} should come after {@code b}
-     */
-    private static int compareTasks(Task a, Task b) {
         boolean aNull = a.priority == null;
         boolean bNull = b.priority == null;
 
-        // Both have null priority: sort by createdAt ascending
         if (aNull && bNull) {
-            return Long.compare(a.createdAt, b.createdAt);
+            // Both null: ascending createdAt
+            return a.createdAt > b.createdAt;
         }
-        // a has null priority, b does not: a goes after b
         if (aNull) {
-            return 1;
+            // a is null, b is not: a should come after b
+            return true;
         }
-        // b has null priority, a does not: b goes after a
         if (bNull) {
-            return -1;
+            // b is null, a is not: a should come before b
+            return false;
         }
 
-        // Both have non-null priority: sort descending by priority
+        // Both non-null: descending priority
         int priorityCmp = Integer.compare(b.priority, a.priority);
         if (priorityCmp != 0) {
-            return priorityCmp;
+            return priorityCmp > 0; // a has lower priority, so swap
         }
 
-        // Priorities are equal: sort ascending by createdAt
-        return Long.compare(a.createdAt, b.createdAt);
+        // Equal priority: ascending createdAt
+        return a.createdAt > b.createdAt;
     }
 }

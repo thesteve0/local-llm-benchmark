@@ -2,61 +2,79 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Represents a task with a name, priority (which may be null), and creation timestamp.
+ * Implements bubble sort for task records.
+ * <p>
+ * The sorting order is:
+ * <ol>
+ *   <li>Primary: priority descending (higher priority first)</li>
+ *   <li>Tiebreaker: createdAt ascending (earlier timestamp first)</li>
+ *   <li>Null handling: tasks with null priority are placed at the end, sorted by createdAt ascending</li>
+ * </ol>
  */
-public record Task(String name, Integer priority, long createdAt) {
-    // No explicit constructor needed; the canonical constructor is generated.
-}
-
-/**
- * Holds the result of a bubble sort operation: the sorted list of tasks and the total number of swaps performed.
- */
-public record SortResult(List<Task> tasks, int swapCount) {
-    // No explicit constructor needed; the canonical constructor is generated.
-}
-
 public class BubbleSortTasks {
 
     /**
-     * Sorts a list of tasks using the bubble sort algorithm according to the following rules:
-     * <ol>
-     *   <li>Primary key: priority descending (higher priority first).</li>
-     *   <li>Tiebreaker: createdAt ascending (earlier timestamp first).</li>
-     *   <li>Null priority: tasks with {@code null} priority are placed at the end of the list,
-     *       ordered by createdAt ascending among themselves.</li>
-     * </ol>
+     * Represents a task with a name, priority, and creation timestamp.
+     * <p>
+     * Priority may be {@code null}, which indicates the lowest priority.
+     */
+    public static record Task(String name, Integer priority, long createdAt) {
+    }
+
+    /**
+     * Represents the result of a bubble sort operation.
      *
-     * The original list is not modified; a new sorted list is returned.
+     * @param tasks    the sorted list of tasks
+     * @param swapCount the total number of swaps performed during sorting
+     */
+    public static record SortResult(List<Task> tasks, int swapCount) {
+    }
+
+    /**
+     * Sorts a list of tasks using the bubble sort algorithm.
+     * <p>
+     * The original list is not modified. The sorting follows these rules:
+     * <ul>
+     *   <li>Tasks with higher priority come first</li>
+     *   <li>If priorities are equal, tasks with earlier creation timestamps come first</li>
+     *   <li>Tasks with null priority are placed at the end, sorted by creation timestamp ascending</li>
+     * </ul>
      *
-     * @param tasks the list of tasks to sort; may be {@code null} or contain {@code null} elements
-     * @return a {@link SortResult} containing the sorted list and the total number of swaps performed
+     * @param tasks the list of tasks to sort (must not be {@code null})
+     * @return a {@link SortResult} containing the sorted list and the total swap count
      */
     public static SortResult bubbleSortTasks(List<Task> tasks) {
-        // Defensive copy to avoid modifying the input list.
-        List<Task> list = new ArrayList<>(tasks == null ? 0 : tasks.size());
-        if (tasks != null) {
-            list.addAll(tasks);
+        if (tasks == null) {
+            throw new IllegalArgumentException("Input list cannot be null");
         }
 
-        int n = list.size();
+        // Create a new list to avoid modifying the original
+        List<Task> sortedTasks = new ArrayList<>(tasks);
+        int n = sortedTasks.size();
         int swapCount = 0;
 
-        // Standard bubble sort for descending order.
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n - i - 1; j++) {
-                Task a = list.get(j);
-                Task b = list.get(j + 1);
+        // Perform bubble sort
+        for (int i = 0; i < n - 1; i++) {
+            boolean swapped = false;
+            for (int j = 0; j < n - 1 - i; j++) {
+                Task current = sortedTasks.get(j);
+                Task next = sortedTasks.get(j + 1);
 
-                // If a should come after b, swap them.
-                if (compare(a, b) < 0) {
-                    list.set(j, b);
-                    list.set(j + 1, a);
+                // If current should come after next, swap them
+                if (compare(current, next) > 0) {
+                    sortedTasks.set(j, next);
+                    sortedTasks.set(j + 1, current);
                     swapCount++;
+                    swapped = true;
                 }
+            }
+            // If no swaps occurred, the list is already sorted
+            if (!swapped) {
+                break;
             }
         }
 
-        return new SortResult(list, swapCount);
+        return new SortResult(sortedTasks, swapCount);
     }
 
     /**
@@ -64,33 +82,31 @@ public class BubbleSortTasks {
      *
      * @param a the first task
      * @param b the second task
-     * @return a negative integer if {@code a} should come after {@code b},
-     *         zero if they are equal in the sort order,
-     *         a positive integer if {@code a} should come before {@code b}
+     * @return a negative integer if {@code a} should come before {@code b},
+     *         zero if they are equal,
+     *         a positive integer if {@code a} should come after {@code b}
      */
     private static int compare(Task a, Task b) {
-        // Handle null priority cases.
-        boolean aNull = a.priority() == null;
-        boolean bNull = b.priority() == null;
+        // Both priorities are null: sort by createdAt ascending
+        if (a.priority == null && b.priority == null) {
+            return Long.compare(a.createdAt, b.createdAt);
+        }
 
-        if (aNull && bNull) {
-            // Both null: sort by createdAt ascending.
-            return Long.compare(a.createdAt(), b.createdAt());
-        } else if (aNull) {
-            // a is null, b is not: a comes after b.
-            return -1;
-        } else if (bNull) {
-            // b is null, a is not: a comes before b.
+        // Only a's priority is null: a should come after b
+        if (a.priority == null) {
             return 1;
         }
 
-        // Both priorities are non-null.
-        int priorityComparison = b.priority().compareTo(a.priority()); // descending
+        // Only b's priority is null: b should come after a
+        if (b.priority == null) {
+            return -1;
+        }
+
+        // Both priorities are non-null: sort by priority descending, then by createdAt ascending
+        int priorityComparison = Integer.compare(b.priority, a.priority);
         if (priorityComparison != 0) {
             return priorityComparison;
         }
-
-        // Priorities equal: sort by createdAt ascending.
-        return Long.compare(a.createdAt(), b.createdAt());
+        return Long.compare(a.createdAt, b.createdAt);
     }
 }

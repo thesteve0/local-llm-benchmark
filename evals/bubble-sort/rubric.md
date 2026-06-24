@@ -14,13 +14,17 @@ Score each dimension 1–5. Total: 25 points.
 
 ## 2. Documentation (1–5)
 
+Documentation has two layers, both of which matter:
+- **External documentation** (docstrings, Javadoc, doc-comments): summarizes what a function/class does, its parameters, return value, and key rules.
+- **Inline documentation**: explains the business rule or intent at the point of implementation. Comments like `// Both null: sort by createdAt ascending` add value even if the rule is also in the docstring, because they provide context right where the reader needs it. This is distinct from mechanical restatements of the code itself (e.g., `// increment i`).
+
 | Score | Criteria |
 |------:|----------|
-| 5 | Clear docstring/doc-comment explaining: what the function does, the sorting rules, parameters, return value, and null/None handling. Concise — no redundant commentary. |
-| 4 | Good documentation covering most of the above. Minor omission (e.g., doesn't mention null handling explicitly). |
-| 3 | Has a docstring but it's either too terse ("sorts tasks") or too verbose (restating obvious code). |
-| 2 | Minimal or boilerplate documentation that doesn't explain the sorting rules. |
-| 1 | No documentation at all, or only inline comments restating what the code does. |
+| 5 | Clear docstring/doc-comment explaining: what the function does, the sorting rules, parameters, return value, and null/None handling. Inline comments explain business rules and intent at the point of implementation. No purely mechanical restatements of code. |
+| 4 | Good external documentation covering most of the above. Minor omission (e.g., doesn't mention null handling explicitly). Inline comments present but incomplete or inconsistent. |
+| 3 | Has a docstring but it's either too terse ("sorts tasks") or missing inline documentation of business rules. |
+| 2 | Minimal or boilerplate documentation that doesn't explain the sorting rules. No meaningful inline comments. |
+| 1 | No documentation at all. |
 
 ## 3. Language Idiom (1–5)
 

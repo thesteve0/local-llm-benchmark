@@ -8,14 +8,14 @@ Implement a bubble sort function for task records.
 
 ## Requirements
 
-Write a single file `BubbleSortTasks.java` containing:
+Write a single file `BubbleSortTasks.java` containing a public class `BubbleSortTasks` with:
 
-1. A `Task` record (or class) with fields:
+1. A **static inner** `Task` record with fields:
    - `String name`
    - `Integer priority` (nullable — use `Integer`, not `int`)
    - `long createdAt`
 
-2. A `SortResult` record (or class) with fields:
+2. A **static inner** `SortResult` record with fields:
    - `List<Task> tasks` — the sorted list
    - `int swapCount` — total swaps performed
 
@@ -39,13 +39,13 @@ Write a single file `BubbleSortTasks.java` containing:
 ### Example
 
 ```java
-List<Task> tasks = List.of(
-    new Task("bug",     3, 1000),
-    new Task("feature", 5, 2000),
-    new Task("docs",    3, 500)
+List<BubbleSortTasks.Task> tasks = List.of(
+    new BubbleSortTasks.Task("bug",     3, 1000),
+    new BubbleSortTasks.Task("feature", 5, 2000),
+    new BubbleSortTasks.Task("docs",    3, 500)
 );
 
-SortResult result = BubbleSortTasks.bubbleSortTasks(tasks);
+BubbleSortTasks.SortResult result = BubbleSortTasks.bubbleSortTasks(tasks);
 // result.tasks() = [Task("feature",5,2000), Task("docs",3,500), Task("bug",3,1000)]
 // result.swapCount() = 2
 ```
@@ -55,149 +55,196 @@ Write clean, well-documented, idiomatic Java code. Use Javadoc where appropriate
 
 ## Reasoning
 
-We need to produce a single file BubbleSortTasks.java with a Task record, SortResult record, and static method bubbleSortTasks implementing bubble sort with custom comparator as described, handling nulls, counting swaps, not modifying original list. Provide Javadoc. Ensure we use Java 17+ features (records). Provide code.
+We need to implement bubble sort for a list of Task records. The sorting rules: primary by priority descending, but null priorities go to end. Tiebreaker: createdAt ascending. For null priorities, they are at end, sorted by createdAt ascending.
+
+We need to return a new list, not modify original. So we can copy the list, then bubble sort on the copy.
+
+We need to count swaps.
+
+Implementation details:
+
+- Define Task record with name, priority (Integer), createdAt.
+- Define SortResult record with List<Task> tasks, int swapCount.
+
+- bubbleSortTasks method: takes List<Task> tasks. Create a new ArrayList<Task> list = new ArrayList<>(tasks). Then perform bubble sort on list.
+
+Comparison function: we need a method compare(Task a, Task b) returning negative if a < b (i.e., a should come after b), positive if a > b, zero if equal.
+
+Rules:
+
+- If a.priority == null and b.priority == null: compare createdAt ascending. So a < b if a.createdAt > b.createdAt (since earlier timestamp should come first). So return Long.compare(a.createdAt, b.createdAt). Actually we want ascending: earlier (smaller) comes first. So if a.createdAt < b.createdAt, a should come before b, so a < b is false? Let's define: we want to sort in order: higher priority first, then earlier createdAt. So we can define a comparator:
+
+Comparator<Task> comp = Comparator.comparing(Task::priority, Comparator.nullsLast(Comparator.reverseOrder()))
+    .thenComparing(Task::createdAt);
+
+This sorts by priority descending (higher first), nulls last, then createdAt ascending.
+
+But we need to implement bubble sort manually, so we need to implement the comparison logic.
+
+We can write a method int compare(Task a, Task b):
+
+- If a.priority == null && b.priority == null: return Long.compare(a.createdAt, b.createdAt); // ascending
+- If a.priority == null: return 1; // a should be after b
+- If b.priority == null: return -1; // a should be before b
+- Otherwise: // both non-null
+   - int cmp = b.priority.compareTo(a.priority); // descending: higher priority first
+   - if (cmp != 0) return cmp;
+   - return Long.compare(a.createdAt, b.createdAt); // ascending
+
+This implements the rules.
+
+Bubble sort algorithm:
+
+int n = list.size();
+int swapCount = 0;
+for (int i = 0; i < n - 1; i++) {
+    boolean swapped = false;
+    for (int j = 0; j < n - 1 - i; j++) {
+        Task current = list.get(j);
+        Task next = list.get(j + 1);
+        if (compare(current, next) > 0) { // current should come after next
+            // swap
+            list.set(j, next);
+            list.set(j + 1, current);
+            swapCount++;
+            swapped = true;
+        }
+    }
+    if (!swapped) break;
+}
+
+After sorting, return new SortResult(list, swapCount);
+
+Edge cases: empty list, single element.
+
+We must not modify original list, so we copy.
+
+Now, write the code with Javadoc.
+
+We need to ensure the class is public, and the records are static inner.
+
+Let's write the code.
 
 
 ## Response
-
-**BubbleSortTasks.java**
 
 ```java
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Utility class that provides a bubble‑sort implementation for {@link Task} objects.
- *
- * <p>The sorting order is:
+ * Implements bubble sort for task records according to specified rules.
+ * <p>
+ * The sorting order is:
  * <ol>
- *   <li>Higher {@code priority} first (descending).</li>
- *   <li>If priorities are equal, earlier {@code createdAt} first (ascending).</li>
- *   <li>Tasks with a {@code null} priority are placed at the end of the list,
- *       ordered by {@code createdAt} ascending among themselves.</li>
+ *   <li>Primary: priority descending (higher priority first)</li>
+ *   <li>Tiebreaker: createdAt ascending (earlier timestamp first)</li>
+ *   <li>Null handling: tasks with null priority are placed at the end, sorted by createdAt ascending</li>
  * </ol>
- *
- * <p>The method returns a {@link SortResult} containing the newly sorted list
- * and the total number of swaps performed during the bubble‑sort process.
- * The original input list is never modified.
  */
-public final class BubbleSortTasks {
-
-    // Prevent instantiation
-    private BubbleSortTasks() { }
+public class BubbleSortTasks {
 
     /**
-     * A simple data holder for a task.
-     *
-     * @param name      the name of the task (e.g. "bug", "feature")
-     * @param priority  the priority of the task; may be {@code null}
-     * @param createdAt the epoch‑millisecond timestamp when the task was created
+     * Represents a task with a name, priority, and creation timestamp.
+     * <p>
+     * {@code priority} is nullable; {@code null} values are treated as the lowest priority.
      */
-    public record Task(String name, Integer priority, long createdAt) { }
+    public static record Task(String name, Integer priority, long createdAt) {
+        // Record is immutable; no explicit constructor needed
+    }
 
     /**
-     * Holds the result of a bubble‑sort operation.
+     * Holds the result of a bubble sort operation.
      *
-     * @param tasks     the sorted list of tasks
-     * @param swapCount the total number of element swaps performed
+     * @param tasks    the sorted list of tasks (new list, original unchanged)
+     * @param swapCount the total number of swaps performed during sorting
      */
-    public record SortResult(List<Task> tasks, int swapCount) { }
+    public static record SortResult(List<Task> tasks, int swapCount) {
+        // Record is immutable; no explicit constructor needed
+    }
 
     /**
-     * Sorts a list of {@link Task} objects using the bubble‑sort algorithm.
+     * Sorts a list of tasks using the bubble sort algorithm.
+     * <p>
+     * The original list is not modified; a new sorted list is returned.
      *
-     * @param tasks the list to sort; may be {@code null} or contain {@code null} elements
-     * @return a {@link SortResult} containing a new sorted list and the swap count
-     *
-     * @throws IllegalArgumentException if {@code tasks} is {@code null}
+     * @param tasks the list of tasks to sort (must not be null)
+     * @return a {@link SortResult} containing the sorted list and total swap count
      */
     public static SortResult bubbleSortTasks(List<Task> tasks) {
         if (tasks == null) {
             throw new IllegalArgumentException("Input list cannot be null");
         }
 
-        // Work on a defensive copy so the original list is never mutated.
-        List<Task> workingList = new ArrayList<>(tasks);
-        int n = workingList.size();
+        // Create a new list to avoid modifying the original
+        List<Task> sortedList = new ArrayList<>(tasks);
+        int n = sortedList.size();
         int swapCount = 0;
 
-        // Classic bubble‑sort: repeat passes until no swaps are needed.
-        boolean swapped;
+        // Bubble sort implementation
         for (int i = 0; i < n - 1; i++) {
-            swapped = false;
-            // After each pass, the largest element among the unsorted part
-            // bubbles to its final position at index n‑i‑1.
-            for (int j = 0; j < n - i - 1; j++) {
-                Task current = workingList.get(j);
-                Task next    = workingList.get(j + 1);
+            boolean swapped = false;
+            for (int j = 0; j < n - 1 - i; j++) {
+                Task current = sortedList.get(j);
+                Task next = sortedList.get(j + 1);
 
-                if (shouldSwap(current, next)) {
-                    // Swap in the list.
-                    workingList.set(j, next);
-                    workingList.set(j + 1, current);
+                // If current should come after next, swap them
+                if (compare(current, next) > 0) {
+                    sortedList.set(j, next);
+                    sortedList.set(j + 1, current);
                     swapCount++;
                     swapped = true;
                 }
             }
-            // If no swaps occurred, the list is already sorted.
+            // Optimization: stop if no swaps occurred in a pass
             if (!swapped) {
                 break;
             }
         }
 
-        return new SortResult(workingList, swapCount);
+        return new SortResult(sortedList, swapCount);
     }
 
     /**
-     * Determines whether two {@link Task} objects should be swapped
-     * according to the required ordering rules.
+     * Compares two tasks according to the sorting rules.
      *
      * @param a the first task
      * @param b the second task
-     * @return {@code true} if {@code a} should appear after {@code b} in the sorted list
+     * @return a negative integer if {@code a} should come before {@code b},
+     *         a positive integer if {@code a} should come after {@code b},
+     *         or zero if they are equal for sorting purposes
      */
-    private static boolean shouldSwap(Task a, Task b) {
-        // Both priorities are non‑null → compare descending.
-        if (a.priority() != null && b.priority() != null) {
-            int cmp = b.priority().compareTo(a.priority()); // descending
-            if (cmp != 0) {
-                return cmp < 0; // swap if b has lower priority
-            }
-            // Priorities equal → compare createdAt ascending.
-            return a.createdAt() > b.createdAt();
+    private static int compare(Task a, Task b) {
+        // Handle null priorities: they go to the end
+        if (a.priority() == null && b.priority() == null) {
+            // Both null: sort by createdAt ascending (earlier first)
+            return Long.compare(a.createdAt(), b.createdAt());
+        }
+        if (a.priority() == null) {
+            // a is null, b is not: a should come after b
+            return 1;
+        }
+        if (b.priority() == null) {
+            // b is null, a is not: a should come before b
+            return -1;
         }
 
-        // One or both priorities are null.
-        // Null priority always goes to the end.
-        if (a.priority() == null && b.priority() != null) {
-            return false; // a (null) should stay after b (non‑null)
-        }
-        if (a.priority() != null && b.priority() == null) {
-            return true;  // a (non‑null) should stay before b (null)
+        // Both priorities are non-null: sort by priority descending
+        int priorityCompare = b.priority().compareTo(a.priority());
+        if (priorityCompare != 0) {
+            return priorityCompare;
         }
 
-        // Both priorities are null → order by createdAt ascending.
-        return a.createdAt() > b.createdAt();
+        // Priorities equal: sort by createdAt ascending
+        return Long.compare(a.createdAt(), b.createdAt());
     }
 }
 ```
 
-### How It Works
-1. **Defensive Copy** – A new `ArrayList` is created from the input list so the original data stays untouched.
-2. **Bubble‑Sort Loop** – The outer loop runs at most `n‑1` passes. The inner loop compares adjacent elements and swaps them when the required order is violated.
-3. **Comparison Logic** – The private `shouldSwap` method encodes the three sorting rules:
-   * Higher `priority` first (descending).
-   * If priorities tie, earlier `createdAt` first (ascending).
-   * `null` priorities are treated as the lowest value and are placed at the end, still ordered by `createdAt`.
-4. **Swap Counting** – Every time a swap occurs, `swapCount` is incremented.
-5. **Result** – After the loops finish, a `SortResult` containing the sorted list and the total swap count is returned.
-
-The implementation adheres strictly to the requirement of using the bubble‑sort algorithm and avoids any built‑in sorting utilities.
-
 ## Timings
 
-- Time to first token: 0.31s
-- Total generation: 18.69s
-- Reasoning tokens: 85
-- Answer tokens: 1397
-- Total tokens: 1482
+- Time to first token: 0.41s
+- Total generation: 23.64s
+- Reasoning tokens: 805
+- Answer tokens: 1074
+- Total tokens: 1879

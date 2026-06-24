@@ -1,6 +1,6 @@
 # Bubble Sort Tasks — Rust
 
-Implement a bubble sort function for task records.
+in Rust, implement a bubble sort function for task records.
 
 ## Requirements
 

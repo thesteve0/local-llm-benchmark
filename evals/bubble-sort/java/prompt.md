@@ -4,14 +4,14 @@ Implement a bubble sort function for task records.
 
 ## Requirements
 
-Write a single file `BubbleSortTasks.java` containing:
+Write a single file `BubbleSortTasks.java` containing a public class `BubbleSortTasks` with:
 
-1. A `Task` record (or class) with fields:
+1. A **static inner** `Task` record with fields:
    - `String name`
    - `Integer priority` (nullable — use `Integer`, not `int`)
    - `long createdAt`
 
-2. A `SortResult` record (or class) with fields:
+2. A **static inner** `SortResult` record with fields:
    - `List<Task> tasks` — the sorted list
    - `int swapCount` — total swaps performed
 
@@ -35,13 +35,13 @@ Write a single file `BubbleSortTasks.java` containing:
 ### Example
 
 ```java
-List<Task> tasks = List.of(
-    new Task("bug",     3, 1000),
-    new Task("feature", 5, 2000),
-    new Task("docs",    3, 500)
+List<BubbleSortTasks.Task> tasks = List.of(
+    new BubbleSortTasks.Task("bug",     3, 1000),
+    new BubbleSortTasks.Task("feature", 5, 2000),
+    new BubbleSortTasks.Task("docs",    3, 500)
 );
 
-SortResult result = BubbleSortTasks.bubbleSortTasks(tasks);
+BubbleSortTasks.SortResult result = BubbleSortTasks.bubbleSortTasks(tasks);
 // result.tasks() = [Task("feature",5,2000), Task("docs",3,500), Task("bug",3,1000)]
 // result.swapCount() = 2
 ```

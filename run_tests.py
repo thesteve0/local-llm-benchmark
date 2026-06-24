@@ -38,7 +38,7 @@ def count_expected_tests(lang: str, eval_dir: Path) -> int:
         return len(re.findall(r'def test_', text))
     elif lang == "java":
         text = (eval_dir / "BubbleSortTasksTest.java").read_text()
-        return len(re.findall(r'System\.out\.println\("test_', text))
+        return len(re.findall(r'startTest\("', text))
     elif lang == "rust":
         text = (eval_dir / "tests" / "test_bubble_sort.rs").read_text()
         return len(re.findall(r'#\[test\]', text))
@@ -144,6 +144,11 @@ def write_scorecard(out_dir: Path, model: str, passed: int, failed: int, total: 
 | Structure | | |
 | Edge Cases | | |
 | **Total** | **/ 25** | |
+
+## Evaluation
+
+- **Evaluator:**
+- **Date:**
 
 ## Overall Notes
 
