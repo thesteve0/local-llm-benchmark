@@ -1,0 +1,20 @@
+# Scorecard: Qwen3.6-35B-A3B-UD-Q4_K_M
+
+## Test Results
+
+- **Tests passed:** 0 / 11
+- **Tests failed:** 11
+
+## Code Quality (see rubric.md for criteria)
+
+| Dimension | Score (1-5) | Notes |
+|-----------|:-----------:|-------|
+| Naming | | |
+| Documentation | | |
+| Language Idiom | | |
+| Structure | | |
+| Edge Cases | | |
+| **Total** | **/ 25** | |
+
+## Overall Notes
+

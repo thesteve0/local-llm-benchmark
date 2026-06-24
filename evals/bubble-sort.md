@@ -40,10 +40,21 @@ The same task is given in Python, Java, and Rust, expressed idiomatically for ea
 ## Running an Eval
 
 1. Give the model the contents of the appropriate `prompt.md`
-2. Save the model's output into the expected file (see table above)
-3. Run the test command from the language directory
-4. Record pass/fail count (11 tests total)
-5. Score code quality using `bubble-sort/rubric.md` (5 dimensions, 1–5 each, 25 max)
+2. Create a subdirectory for the model under the language directory (e.g., `python/qwen-q8/`)
+3. Save the model's output into that subdirectory with the expected filename
+4. Copy the test file into the subdirectory and run the test command from there
+5. Record pass/fail count (11 tests total)
+6. Score code quality using `bubble-sort/rubric.md` (5 dimensions, 1–5 each, 25 max)
+
+### Example: testing Qwen Q8 on Python
+
+```bash
+mkdir -p evals/bubble-sort/python/qwen-q8
+# save model output as evals/bubble-sort/python/qwen-q8/bubble_sort.py
+cp evals/bubble-sort/python/test_bubble_sort.py evals/bubble-sort/python/qwen-q8/
+cd evals/bubble-sort/python/qwen-q8
+python3 -m unittest test_bubble_sort -v
+```
 
 ## Test Cases
 
@@ -78,17 +89,28 @@ Full rubric with scoring details is in `bubble-sort/rubric.md`.
 ```
 evals/bubble-sort/
   rubric.md                        # Detailed scoring rubric
+  reference-impl/                  # Verified reference implementations
+    bubble_sort.py
+    BubbleSortTasks.java
+    lib.rs
   python/
     prompt.md                      # Prompt to give the model
     test_bubble_sort.py            # 11 unittest tests (model never sees this)
+    <model-name>/                  # One subdirectory per model run
+      bubble_sort.py               #   Model's output
+      test_bubble_sort.py          #   Copy of test file
   java/
     prompt.md
     BubbleSortTasksTest.java       # 11 tests via main() — no JUnit needed
+    <model-name>/
+      BubbleSortTasks.java
+      BubbleSortTasksTest.java
   rust/
     prompt.md
     Cargo.toml
     src/lib.rs                     # Stub — model replaces this file
     tests/test_bubble_sort.rs      # 11 integration tests
+    <model-name>/                  # Full Cargo project copy per model
 ```
 
 ## Design Rationale
