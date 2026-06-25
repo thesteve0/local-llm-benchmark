@@ -7,14 +7,21 @@
 
 ## Code Quality (see rubric.md for criteria)
 
-| Dimension | Score (1-5) | Notes |
-|-----------|:-----------:|-------|
-| Naming | | |
-| Documentation | | |
-| Language Idiom | | |
-| Structure | | |
-| Edge Cases | | |
-| **Total** | **/ 25** | |
+| Dimension      | Score (1-5)  | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| -------------- | :----------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Naming         |      2       | Weird useless variables with short names like `a_pri` and `b_time` etc.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Documentation  |      3       | Good to include the docstring, but providing variable names as tuple members is a strange choice. Not much in the way of in-line comments at all, and possible to parse, but a few of these conditionals could really use more justification                                                                                                                                                                                                                                                                                                                                                                           |
+| Language Idiom |      2       | Doubly-nested ifs in a for loop in a while loop is basically textbook "the thing Python tries to keep you from doing." Multiple variable assignments on one line, which don't need to be there at all, are bizarre. The condition being separated out would have been much better than inlining the logic. I like the outer loop construction better than we saw from the other model, with the clear `while` case, but that's about it. Oh, the `if __name__ == "__main__"` test implementation is neat since it knew you were using this as a library and that wouldn't run in normal use, but very out of the norm. |
+| Structure      |      2       | Shoving a big long line of under-documented logic and unnecessary variable assignments inside a single function isn't great.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Edge Cases     |      4       | Does what it says on the tin, and should properly guard the `while` loop against equal-priority and equal-creation-time entries by virtue of line 50 being _just_ inside the edge case.                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| **Total**      | ** 13 / 25** |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 ## Overall Notes
 
+The reasoning token use is absolutely out of control. This will impact your context window pretty significantly during
+use.
+
+A functional solution that's gross to read and, if the task were any more complex, would be awful to maintain.
+
+I worry that the preferred `typing` hints (vs just core types) not being present is a result of prompt pollution, since
+it was what you requested in the function signature.
