@@ -7,9 +7,9 @@ import requests
 from pathlib import Path
 
 HOST = "http://localhost:8080"
-MODEL = "Qwen3.8-27B-UD-Q6_K_XL"
+MODEL = "Qwen3.6-35B-A3B-Q8_0"
 PROMPT_FILE = "evals/bubble-sort/java/prompt.md"
-OUTPUT_DIR = "evals/bubble-sort/java/qwen3.8-27b"
+OUTPUT_DIR = "evals/bubble-sort/java/qwen3.6-35b-a3b-q8"
 OUTPUT_TO_TERM = True
 
 LANG_CODE_FILENAMES = {

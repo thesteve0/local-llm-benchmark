@@ -6,7 +6,7 @@ import requests
 from pathlib import Path
 
 HOST = "http://localhost:8080"
-MODEL = "Qwen3.8-27B-UD-Q6_K_XL"
+MODEL = "Qwen3.6-35B-A3B-Q8_0"
 OUTPUT = "output/manual_eval/transformer_v_mamba"
 OUTPUT_TO_TERM = True
 PROMPT = (
