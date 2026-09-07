@@ -13,24 +13,18 @@ We are benchmarking two quantizations from this family on a Framework Desktop wi
 
 Both models load with `thinking = 1` (chain-of-thought reasoning enabled). The MoE architecture activates only ~3B parameters per forward pass despite 35B total weights in memory.
 
-### Ramalama Serve Commands
+### Serve Commands
+
+Served directly with llama.cpp (`llama serve`, port 8080 by default). The `:quant` tag selects the GGUF file.
 
 **Q8_0 (quality baseline):**
 ```bash
-ramalama serve \
-  --name llm-server \
-  --port 8081 \
-  --network llm-bench \
-  hf.co/unsloth/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-Q8_0.gguf
+llama serve -hf unsloth/Qwen3.6-35B-A3B-GGUF:Q8_0
 ```
 
 **UD-Q4_K_M (efficiency target):**
 ```bash
-ramalama serve \
-  --name llm-server \
-  --port 8081 \
-  --network llm-bench \
-  hf.co/unsloth/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf
+llama serve -hf unsloth/Qwen3.6-35B-A3B-GGUF:UD-Q4_K_M
 ```
 
 ## Benchmark Results — Qwen3.6 35B-A3B Q8_0 (AI MAX+ 395 GPU)

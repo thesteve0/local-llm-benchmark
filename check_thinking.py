@@ -14,7 +14,7 @@ Do not trust the RESULT line at the end of this script.
 import json
 import requests
 
-HOST = "http://localhost:8081"
+HOST = "http://localhost:8080"
 PROMPT = (
     "What is the sum of all integers from 1 to 100? "
     "Show your reasoning step by step."

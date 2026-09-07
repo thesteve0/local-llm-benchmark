@@ -14,7 +14,7 @@ PROMPT_FILE = "evals/bubble-sort/python/prompt.md"
 OUTPUT_DIR = "evals/bubble-sort/python/qwen-q4"
 ```
 
-Then run it (model must be serving via Ramalama on the configured HOST/port):
+Then run it (model must be serving via llama.cpp — `llama serve` — on the configured HOST/port):
 
 ```bash
 python3 manual_code_eval.py

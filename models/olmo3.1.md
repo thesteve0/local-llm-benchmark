@@ -21,24 +21,18 @@ We are benchmarking two quantizations from this family on a Framework Desktop wi
 | `unsloth/Olmo-3.1-32B-Think-GGUF` (Q8_0) | GGUF, Dense | ~34.3 GB | Quality baseline |
 | `unsloth/Olmo-3.1-32B-Think-GGUF` (Q4_K_M) | GGUF, Dense | ~19.5 GB | Efficiency target |
 
-### Ramalama Serve Commands
+### Serve Commands
+
+Served directly with llama.cpp (`llama serve`, port 8080 by default). The `:quant` tag selects the GGUF file.
 
 **Q8_0 (quality baseline):**
 ```bash
-ramalama serve \
-  --name llm-server \
-  --port 8081 \
-  --network llm-bench \
-  hf.co/unsloth/Olmo-3.1-32B-Think-GGUF/Olmo-3.1-32B-Think-Q8_0.gguf
+llama serve -hf unsloth/Olmo-3.1-32B-Think-GGUF:Q8_0
 ```
 
 **Q4_K_M (efficiency target):**
 ```bash
-ramalama serve \
-  --name llm-server \
-  --port 8081 \
-  --network llm-bench \
-  hf.co/unsloth/Olmo-3.1-32B-Think-GGUF/Olmo-3.1-32B-Think-Q4_K_M.gguf
+llama serve -hf unsloth/Olmo-3.1-32B-Think-GGUF:Q4_K_M
 ```
 
 ## Thinking Token Verbosity — A Key Future Evaluation Dimension

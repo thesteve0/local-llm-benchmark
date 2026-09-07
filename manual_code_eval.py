@@ -6,10 +6,10 @@ import time
 import requests
 from pathlib import Path
 
-HOST = "http://localhost:8081"
-MODEL = "Mellum2-12B-A2.5B-Thinking-Q6_K"
+HOST = "http://localhost:8080"
+MODEL = "Qwen3.8-27B-UD-Q6_K_XL"
 PROMPT_FILE = "evals/bubble-sort/java/prompt.md"
-OUTPUT_DIR = "evals/bubble-sort/java/mellum2-q6"
+OUTPUT_DIR = "evals/bubble-sort/java/qwen3.8-27b"
 OUTPUT_TO_TERM = True
 
 LANG_CODE_FILENAMES = {
@@ -19,6 +19,30 @@ LANG_CODE_FILENAMES = {
 }
 
 REPO_ROOT = Path(__file__).parent
+
+
+def server_timing_lines(timings: dict) -> list[str]:
+    """Format llama.cpp server-side timings as markdown bullet lines.
+
+    These come from the `timings` object llama.cpp includes in the final
+    streamed chunk and are the authoritative prompt-eval / generation speeds
+    (the same numbers printed in the llama.cpp server log)."""
+    if not timings:
+        return []
+    lines = []
+    if timings.get("prompt_n") is not None:
+        lines.append(f"- Prompt tokens: {timings['prompt_n']}")
+    if timings.get("prompt_per_second") is not None:
+        lines.append(f"- Prompt eval speed: {timings['prompt_per_second']:.2f} t/s")
+    if timings.get("prompt_ms") is not None:
+        lines.append(f"- Prompt eval time: {timings['prompt_ms']:.2f} ms")
+    if timings.get("predicted_n") is not None:
+        lines.append(f"- Generation tokens: {timings['predicted_n']}")
+    if timings.get("predicted_per_second") is not None:
+        lines.append(f"- Generation speed: {timings['predicted_per_second']:.2f} t/s")
+    if timings.get("predicted_ms") is not None:
+        lines.append(f"- Generation time: {timings['predicted_ms']:.2f} ms")
+    return lines
 
 
 def detect_language(prompt_path: str) -> str:
@@ -67,6 +91,7 @@ def run_eval():
     first_token_at = None
     active_field = None
     usage = {}
+    timings = {}
 
     with requests.post(
         f"{HOST}/v1/chat/completions",
@@ -91,6 +116,8 @@ def run_eval():
 
             if chunk.get("usage"):
                 usage = chunk["usage"]
+            if chunk.get("timings"):
+                timings = chunk["timings"]
 
             choices = chunk.get("choices")
             if not choices:
@@ -150,16 +177,22 @@ def run_eval():
     print(f"Answer tokens       : {answer_tokens}")
     print(f"Total tokens        : {completion_tokens}")
 
+    server_lines = server_timing_lines(timings)
+    if server_lines:
+        print("\n--- Server timings (llama.cpp) ---")
+        for line in server_lines:
+            print(line[2:])  # strip the markdown "- " prefix for terminal
+
     out_dir = REPO_ROOT / OUTPUT_DIR
     out_dir.mkdir(parents=True, exist_ok=True)
 
     _write_trace(out_dir, prompt_text, reasoning_text, content_text,
-                 ttft, total_time, reasoning_tokens, answer_tokens, completion_tokens)
+                 ttft, total_time, reasoning_tokens, answer_tokens, completion_tokens, timings)
     _write_code(out_dir, code_filename, content_text)
 
 
 def _write_trace(out_dir, prompt_text, reasoning_text, content_text,
-                 ttft, total_time, reasoning_tokens, answer_tokens, total_tokens):
+                 ttft, total_time, reasoning_tokens, answer_tokens, total_tokens, timings=None):
     safe_model = MODEL.replace(":", "_")
     out_path = out_dir / f"{safe_model}.md"
 
@@ -197,6 +230,15 @@ def _write_trace(out_dir, prompt_text, reasoning_text, content_text,
         f"- Total tokens: {total_tokens}",
         "",
     ]
+
+    server_lines = server_timing_lines(timings or {})
+    if server_lines:
+        lines += [
+            "## Server Timings (llama.cpp)",
+            "",
+            *server_lines,
+            "",
+        ]
 
     out_path.write_text("\n".join(lines))
     print(f"\nTrace written to: {out_path}")

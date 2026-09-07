@@ -19,24 +19,18 @@ JetBrains-developed MoE reasoning model explicitly designed for agentic workflow
 
 Both models emit chain-of-thought inside `<think>...</think>` blocks. The MoE architecture activates only 2.5B parameters per forward pass (8 of 64 experts), despite holding 12B total weights in memory.
 
-### Ramalama Serve Commands
+### Serve Commands
+
+Served directly with llama.cpp (`llama serve`, port 8080 by default). The `:quant` tag selects the GGUF file.
 
 **Q8_0 (quality baseline):**
 ```bash
-ramalama serve \
-  --name llm-server \
-  --port 8081 \
-  --network llm-bench \
-  hf.co/JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q8_0/Mellum2-12B-A2.5B-Thinking-Q8_0.gguf
+llama serve -hf JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q8_0:Q8_0
 ```
 
 **Q6_K (efficiency target):**
 ```bash
-ramalama serve \
-  --name llm-server \
-  --port 8081 \
-  --network llm-bench \
-  hf.co/JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q6_K/Mellum2-12B-A2.5B-Thinking-Q6_K.gguf
+llama serve -hf JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q6_K:Q6_K
 ```
 
 ## Benchmark Results — Mellum2 12B-A2.5B Q8_0 (AI MAX+ 395 GPU)

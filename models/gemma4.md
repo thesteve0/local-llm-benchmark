@@ -11,27 +11,21 @@ We are benchmarking two models from this family on a Framework Desktop with AMD 
 
 Both models load with `thinking = 1` (chain-of-thought reasoning enabled), making results directly comparable. At runtime, the 31B model + KV cache consumes ~43 GB of GPU memory.
 
-### Ramalama Serve Commands
+### Serve Commands
+
+Served directly with llama.cpp (`llama serve`, port 8080 by default). The `:quant` tag selects the GGUF file.
 
 **26B MoE:**
 ```bash
-ramalama serve \
-  --name llm-server \
-  --port 8081 \
-  --network llm-bench \
-  hf.co/unsloth/gemma-4-26B-A4B-it-GGUF/gemma-4-26B-A4B-it-UD-Q4_K_M.gguf
+llama serve -hf unsloth/gemma-4-26B-A4B-it-GGUF:UD-Q4_K_M
 ```
 
 **31B Dense (UD-Q4_K_XL):**
 ```bash
-ramalama serve \
-  --name llm-server \
-  --port 8081 \
-  --network llm-bench \
-  hf.co/unsloth/gemma-4-31B-it-qat-GGUF/gemma-4-31B-it-qat-UD-Q4_K_XL.gguf
+llama serve -hf unsloth/gemma-4-31B-it-qat-GGUF:UD-Q4_K_XL
 ```
 
-> The 31B requires the explicit filename — without it, Ramalama defaults to the MTP drafter file and fails to load.
+> The 31B repo also contains an MTP (multi-token-prediction) drafter file — use the explicit `:UD-Q4_K_XL` quant tag so llama.cpp loads the main weights rather than the drafter.
 
 ## Benchmark Results — Gemma 4 26B-A4B (AI MAX+ 395 GPU)
 
