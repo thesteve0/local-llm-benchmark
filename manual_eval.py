@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 
+import argparse
 import json
 import time
 import requests
 from pathlib import Path
 
-HOST = "http://localhost:8080"
-MODEL = "Qwen3.6-35B-A3B-Q8_0"
-OUTPUT = "output/manual_eval/transformer_v_mamba"
+DEFAULT_HOST = "http://localhost:8080"
+DEFAULT_MODEL = "NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16"
+DEFAULT_OUTPUT = "output/manual_eval/transformer_v_mamba"
+DEFAULT_TEMPERATURE = 0.0
 OUTPUT_TO_TERM = True
 PROMPT = (
 """
@@ -19,11 +21,7 @@ REPO_ROOT = Path(__file__).parent
 
 
 def server_timing_lines(timings: dict) -> list[str]:
-    """Format llama.cpp server-side timings as markdown bullet lines.
-
-    These come from the `timings` object llama.cpp includes in the final
-    streamed chunk and are the authoritative prompt-eval / generation speeds
-    (the same numbers printed in the llama.cpp server log)."""
+    """Format authoritative llama.cpp server-side timing fields."""
     if not timings:
         return []
     lines = []
@@ -42,17 +40,30 @@ def server_timing_lines(timings: dict) -> list[str]:
     return lines
 
 
-def run_eval():
+def parse_args():
+    parser = argparse.ArgumentParser(description="Run the essay evaluation against llama.cpp.")
+    parser.add_argument("--host", default=DEFAULT_HOST)
+    parser.add_argument("--model", default=DEFAULT_MODEL)
+    parser.add_argument("--output", default=DEFAULT_OUTPUT,
+                        help="Output path prefix; model name is appended with an underscore")
+    parser.add_argument("--temperature", type=float, default=DEFAULT_TEMPERATURE)
+    parser.add_argument("--no-output", action="store_true",
+                        help="Do not stream reasoning/answer text to the terminal")
+    return parser.parse_args()
+
+
+def run_eval(args):
     request_body = {
         "model": "local",
         "messages": [{"role": "user", "content": PROMPT}],
         "stream": True,
         "stream_options": {"include_usage": True},
-        "temperature": 0.0,
+        "temperature": args.temperature,
     }
 
-    print(f"Model : {MODEL}")
-    print(f"Host  : {HOST}")
+    print(f"Model : {args.model}")
+    print(f"Host  : {args.host}")
+    print(f"Temperature: {args.temperature}")
     print(f"\nPrompt:\n{PROMPT}\n")
 
     reasoning_chunks = []
@@ -64,10 +75,10 @@ def run_eval():
     timings = {}
 
     with requests.post(
-        f"{HOST}/v1/chat/completions",
+        f"{args.host}/v1/chat/completions",
         json=request_body,
         stream=True,
-        timeout=300,
+        timeout=900,
     ) as resp:
         resp.raise_for_status()
         for raw_line in resp.iter_lines():
@@ -93,31 +104,22 @@ def run_eval():
             if not choices:
                 continue
             delta = choices[0].get("delta", {})
-            for field, store in (
-                ("reasoning_content", reasoning_chunks),
-                ("content", content_chunks),
-            ):
+            for field, store in (("reasoning_content", reasoning_chunks), ("content", content_chunks)):
                 token = delta.get(field)
                 if not token:
                     continue
                 if first_token_at is None:
                     first_token_at = time.perf_counter()
-                if OUTPUT_TO_TERM and active_field != field:
+                if OUTPUT_TO_TERM and not args.no_output and active_field != field:
                     active_field = field
-                    if field == "reasoning_content":
-                        print("\n" + "=" * 70)
-                        print("REASONING")
-                        print("=" * 70)
-                    else:
-                        print("\n" + "=" * 70)
-                        print("RESPONSE")
-                        print("=" * 70)
+                    print("\n" + "=" * 70)
+                    print("REASONING" if field == "reasoning_content" else "RESPONSE")
+                    print("=" * 70)
                 store.append(token)
-                if OUTPUT_TO_TERM:
+                if OUTPUT_TO_TERM and not args.no_output:
                     print(token, end="", flush=True)
 
     end = time.perf_counter()
-
     reasoning_text = "".join(reasoning_chunks)
     content_text = "".join(content_chunks)
     ttft = (first_token_at - start) if first_token_at else None
@@ -136,8 +138,7 @@ def run_eval():
         answer_tokens = round(len(content_text) / 4)
         completion_tokens = reasoning_tokens + answer_tokens
 
-    if OUTPUT_TO_TERM:
-        print("\n" + "=" * 70)
+    print("\n" + "=" * 70)
     print("\n--- Timing ---")
     if ttft is not None:
         print(f"Time to first token : {ttft:.2f}s")
@@ -146,70 +147,35 @@ def run_eval():
     print(f"Reasoning tokens    : {reasoning_tokens}")
     print(f"Answer tokens       : {answer_tokens}")
     print(f"Total tokens        : {completion_tokens}")
-
-    server_lines = server_timing_lines(timings)
-    if server_lines:
+    if timings:
         print("\n--- Server timings (llama.cpp) ---")
-        for line in server_lines:
-            print(line[2:])  # strip the markdown "- " prefix for terminal
+        for line in server_timing_lines(timings):
+            print(line[2:])
 
-    _write_output(reasoning_text, content_text, ttft, total_time,
+    _write_output(args, reasoning_text, content_text, ttft, total_time,
                   reasoning_tokens, answer_tokens, completion_tokens, timings)
 
 
-def _write_output(reasoning_text, content_text, ttft, total_time,
+def _write_output(args, reasoning_text, content_text, ttft, total_time,
                   reasoning_tokens, answer_tokens, total_tokens, timings=None):
-    safe_model = MODEL.replace(":", "_")
-    out_path = REPO_ROOT / f"{OUTPUT}_{safe_model}.md"
+    safe_model = args.model.replace(":", "_")
+    out_path = REPO_ROOT / f"{args.output}_{safe_model}.md"
     out_path.parent.mkdir(parents=True, exist_ok=True)
-
-    lines = [
-        f"# Manual Eval: {MODEL}",
-        "",
-        "## Prompt",
-        "",
-        PROMPT,
-        "",
-    ]
-
+    lines = [f"# Manual Eval: {args.model}", "", "## Prompt", "", PROMPT, ""]
     if reasoning_text:
-        lines += [
-            "## Reasoning",
-            "",
-            reasoning_text,
-            "",
-        ]
-
-    lines += [
-        "## Response",
-        "",
-        content_text,
-        "",
-        "## Timings",
-        "",
-    ]
+        lines += ["## Reasoning", "", reasoning_text, ""]
+    lines += ["## Response", "", content_text, "", "## Timings", ""]
     if ttft is not None:
         lines.append(f"- Time to first token: {ttft:.2f}s")
-    lines += [
-        f"- Total generation: {total_time:.2f}s",
-        f"- Reasoning tokens: {reasoning_tokens}",
-        f"- Answer tokens: {answer_tokens}",
-        f"- Total tokens: {total_tokens}",
-        "",
-    ]
-
+    lines += [f"- Temperature: {args.temperature}", f"- Total generation: {total_time:.2f}s",
+              f"- Reasoning tokens: {reasoning_tokens}", f"- Answer tokens: {answer_tokens}",
+              f"- Total tokens: {total_tokens}", ""]
     server_lines = server_timing_lines(timings or {})
     if server_lines:
-        lines += [
-            "## Server Timings (llama.cpp)",
-            "",
-            *server_lines,
-            "",
-        ]
-
+        lines += ["## Server Timings (llama.cpp)", "", *server_lines, ""]
     out_path.write_text("\n".join(lines))
     print(f"\nOutput written to: {out_path}")
 
 
 if __name__ == "__main__":
-    run_eval()
+    run_eval(parse_args())

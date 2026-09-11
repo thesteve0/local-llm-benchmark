@@ -4,100 +4,68 @@
 
 ## Models Under Benchmark
 
-Benchmarking two quantizations from this family on a Framework Desktop with AMD Ryzen AI MAX+ 395 (96 GB GPU / 32 GB CPU unified memory):
-
 | Model | Format | Size | Role |
-|---|---|---|---|
-| `unsloth/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF` (UD-Q6_K_XL) | GGUF | ~32.6 GB | Quality run (Q6) |
-| `unsloth/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF` (UD-Q8_K_XL) | GGUF | ~36.0 GB | Quality run (Q8) |
+|---|---|---:|---|
+| `unsloth/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF` (UD-Q6_K_XL) | GGUF | ~32.6 GB | Existing quality run |
+| `unsloth/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF` (UD-Q8_K_XL) | GGUF | ~36.0 GB | Existing quality run |
+| `unsloth/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF` (BF16) | GGUF | ~65.8 GB | New full-precision-weight run |
 
-Nemotron-3.5-Lightning is a **mixture-of-experts** model — "A3B" means ~3B parameters are active per
-token out of ~32.9B total — so it generates far faster than a dense model of comparable size. It loads
-with chain-of-thought reasoning enabled and emits a reasoning trace before its answer.
+All tests were run on a Framework Desktop with AMD Ryzen AI MAX+ 395 and 128 GB unified memory (96 GB GPU / 32 GB CPU), using one concurrent user and llama.cpp 0.4.0 (build 10809, commit 5266f24da). The server was stopped and cold-restarted before every quality or context test.
 
-### Serve Command
-
-Served directly with llama.cpp (`llama serve`, port 8080 by default). The `:quant` tag selects the GGUF
-file. These runs used the bare command with llama.cpp defaults:
+## BF16 Serve Command
 
 ```bash
-# Q6
-llama serve -hf unsloth/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF:UD-Q6_K_XL
-# Q8
-llama serve -hf unsloth/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF:UD-Q8_K_XL
+llama serve \
+  -hf unsloth/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF:BF16 \
+  --alias nemotron-3.5-lightning-30b-a3b \
+  --host 127.0.0.1 --port 8080 \
+  --jinja \
+  --reasoning-format deepseek \
+  --temp 1.0 --top-p 0.95 \
+  --gpu-layers all --kv-offload --flash-attn auto \
+  --ctx-size 131072 --parallel 1 \
+  --batch-size 2048 --ubatch-size 512 \
+  --cache-prompt --metrics
 ```
 
-The server was **stopped and restarted cold before each of the three runs** (essay, Python bubble sort,
-Java bubble sort) so every task hit a fresh, unwarmed server — matching how the model is used
-agentically. The code-eval runs (`manual_code_eval.py`) send `temperature: 0.0` in the request body for
-determinism; the essay run uses the server defaults.
+The effective serving context was 131,072 tokens; `/v1/models` reported a 1,048,576-token training context, 32,913,266,240 parameters, 65,844,287,744-byte model size, and `ftype: BF16`. The server reported `completion` capability and correctly loaded the `nemotron-3.5-lightning-30b-a3b` alias.
 
-## Benchmark Results — Essay (AI MAX+ 395 GPU)
+## BF16 Results — Quality Evaluation
 
-Metrics from the llama.cpp `timings` object (captured by `manual_eval.py`). Prompt: 500–1000 word
-technical essay on Transformer vs. State Space Model architectures, single concurrent user. Server
-restarted fresh (cold) before each run.
+Primary quality protocol: one cold server run per task, `temperature: 0.0` in the client request. Performance values come from the llama.cpp `timings` object.
 
-| Metric | Q6_K_XL | Q8_K_XL | Source |
-|---|---|---|---|
-| Input tokens | 99 | 99 | llama.cpp server |
-| Output tokens | 3,109 | 3,107 | llama.cpp server |
-| Prompt eval speed | 128.22 t/s | 120.54 t/s | llama.cpp server |
-| Prompt eval time | 772 ms | 821 ms | llama.cpp server |
-| Generation speed | 54.50 t/s | 47.36 t/s | llama.cpp server |
-| Generation time | 57,032 ms (~57 s) | 65,581 ms (~66 s) | llama.cpp server |
-| Total time | 57,804 ms (~58 s) | 66,402 ms (~66 s) | llama.cpp server |
+| Task | Tests / words | Quality | Prompt t/s | Generation t/s | Completion tokens |
+|---|---:|---:|---:|---:|---:|
+| Essay | 1,050 words | 21 / 25 | 73.53 | 21.80 | 3,447 |
+| Python bubble sort | 11 / 11 tests | **25 / 25** | 320.36 | 21.81 | 3,713 |
+| Java bubble sort | 11 / 11 tests | **24 / 25** | 324.67 | 21.79 | 4,625 |
 
-Both quants generate at MoE speed — roughly 7× the dense 27–30B models on this hardware (Qwen3.8-27B
-~8.5 t/s, Muse-Glimmer-30B ~7.9 t/s) — because only ~3B of the ~32.9B parameters are active per token.
-Q8 is ~13% slower than Q6 (47 vs 55 t/s), the expected cost of the heavier quant.
+The essay was technically strong and covered attention, sequence complexity, long-context trade-offs, selective scan, retrieval/compression limitations, and hybrid directions. It exceeded the strict `<1000` word limit at 1,050 words, so it received 1 point for constraint adherence and 21/25 overall. The BF16 Python output was clean and fully idiomatic; the Java output was also excellent, with only minor deductions for relational operators on boxed priorities and an unnecessary demo `main`.
 
-## Code Eval Results — Bubble Sort
+Compared with the existing Q6/Q8 results, BF16 did not improve the hard instruction-following issue in the essay, and generation speed fell from approximately 54.5/47.4 t/s to 21.8 t/s. It did, however, avoid the Q6/Q8 Python import failure and produced code quality comparable to or better than the prior Java runs.
 
-`temperature: 0.0`; server restarted cold before each language. Test counts from the automated suites
-(`run_tests.py`); quality scores from the rubric (`scorecard-claude.md`). Q6 artifacts live in the
-`*-q6` directories, Q8 in the `*-q8` directories.
+## BF16 Context Stress Test
 
-| Quant | Language | Tests | Quality | Gen speed | Reasoning / answer tokens |
-|---|---|:---:|:---:|---:|---|
-| Q6 | Python | **0 / 11** | 19 / 25 † | 54.38 t/s | 3,612 / 940 |
-| Q6 | Java   | 11 / 11 | 24 / 25 | 54.32 t/s | 3,214 / 1,174 |
-| Q8 | Python | **0 / 11** | 17 / 25 † | 47.19 t/s | 3,814 / 1,071 |
-| Q8 | Java   | 11 / 11 | 21 / 25 | 47.22 t/s | 3,735 / 997 |
+The context probe placed a known marker around the latter part of a calibrated prompt and requested a short exact response. Each point was cold-started. The effective prompt lengths were approximately 5.4K, 22.1K, 44.4K, 66.7K, and 88.9K tokens for the requested 8K, 32K, 64K, 96K, and 128K targets in the initial sweep. A corrected calibrated 8K probe reached 7.9K actual tokens. The initial conversion was conservative and did not reach 128K actual tokens; these values should therefore be interpreted as a scaling probe, not a full 128K validation.
 
-### Q6 vs Q8 tradeoffs
+| Requested target | Actual prompt tokens | Prompt eval | Generation | Result |
+|---:|---:|---:|---:|---|
+| 8K | 5,432 (7,928 corrected) | 677.27 t/s (723.09 corrected) | 21.82 t/s (21.75 corrected) | Request completed; response was reasoning-truncated |
+| 32K | 22,124 | 769.38 t/s | 21.50 t/s | Request completed; response was reasoning-truncated |
+| 64K | 44,406 | 739.61 t/s | 21.24 t/s | Request completed; response was reasoning-truncated |
+| 96K | 66,688 | 693.43 t/s | 20.93 t/s | Request completed; response was reasoning-truncated |
+| 128K | 88,944 | 647.97 t/s | 20.55 t/s | Request completed; response was reasoning-truncated |
 
-- **Speed:** Q6 is ~15% faster on generation (~54 vs ~47 t/s) across all tasks. Q8 buys no accuracy
-  here to offset that cost — see below.
-- **Python fails at BOTH quants (0/11).** Both runs emit the invalid line
-  `from typing import list, dict, tuple` (those lowercase names aren't in `typing`, and the import is
-  redundant under PEP 585), so the module raises `ImportError` before any test runs. † The 17–19/25
-  quality scores reflect otherwise-sound code (the algorithms, including the equal-`created_at`
-  tiebreak, are correct), but the identical failure at both quants makes this look like a **model trait,
-  not a quantization artifact**.
-- **Java passes at both quants, but Q6 is cleaner.** Q6 Java (24/25) is the strongest run in the whole
-  benchmark set. Q8 Java (21/25) passes all 11 tests too, but carries a **latent correctness bug**: it
-  compares nullable priorities with `!=` (reference equality on boxed `Integer`), so two equal
-  priorities ≥ 128 (outside the Integer cache) would skip the `createdAt` tiebreaker and mis-order — the
-  test suite misses it because it only uses small priorities. Q8 Java also drops the null-input guard
-  the Q6 version had.
+A corrected calibrated 8K probe reached 7,928 prompt tokens and also completed, at 723.09 prompt t/s and 21.75 generation t/s. The model spent the 128-token completion budget in reasoning and did not emit the exact final needle, so these runs validate context acceptance and scaling but **not retrieval quality**. The context tool retains both `reasoning_content` and `content`; future retrieval validation should either disable reasoning for this probe or allocate a larger completion budget.
 
-**Bottom line:** for this model on this hardware, **Q6 is the better pick** — it is faster *and* produced
-higher-quality, more correct code than Q8. Q8's extra bits didn't fix the Python import failure and, in
-the Java run, coincided with a latent `Integer`-reference bug the Q6 run avoided. See each directory's
-`scorecard-claude.md` for the full rubric breakdown.
+## Existing Q6/Q8 Reference Results
 
-## Model Architecture
+The earlier quality runs used the same hardware but bare server defaults:
 
-Values below are read from the llama.cpp `/v1/models` metadata for the served GGUFs.
+| Quant | Essay words / score | Python | Java | Essay gen | Code gen |
+|---|---:|---:|---:|---:|---:|
+| Q6_K_XL | 1,515 / 21 | 0/11, 19/25 | 11/11, 24/25 | 54.50 t/s | 54.3 t/s |
+| Q8_K_XL | 1,088 / 23 | 0/11, 17/25 | 11/11, 21/25 | 47.36 t/s | 47.2 t/s |
+| BF16 | 1,050 / 21 | 11/11, 25/25 | 11/11, 24/25 | 21.80 t/s | 21.8 t/s |
 
-| Property | Q6_K_XL | Q8_K_XL |
-|---|---|---|
-| Total parameters | ~32.9B (MoE, ~3B active per token) | ~32.9B (MoE, ~3B active per token) |
-| Quantization (ftype) | Q6_K (~32.6 GB on disk) | Q8_0 (~36.0 GB on disk) |
-| Context window | 1,048,576 tokens (1M) | 1,048,576 tokens (1M) |
-| Embedding dim | 2,688 | 2,688 |
-| Vocab size | 131,072 | 131,072 |
-| Multimodal | No — server reports only `completion` | No — server reports only `completion` |
-| Thinking mode | Enabled (emits reasoning before the answer) | Enabled |
-| Inference backend | llama.cpp (Vulkan) | llama.cpp (Vulkan) |
+The BF16 run is materially slower and uses roughly twice the model-file memory of Q8 while delivering a substantial improvement on the Python artifact in this single deterministic sample. It does not clearly improve essay quality or Java quality.
