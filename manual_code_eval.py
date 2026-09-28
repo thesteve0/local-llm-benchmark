@@ -15,6 +15,7 @@ DEFAULT_TEMPERATURE = 0.0
 OUTPUT_TO_TERM = True
 
 LANG_CODE_FILENAMES = {"python": "bubble_sort.py", "java": "BubbleSortTasks.java", "rust": "lib.rs"}
+LANG_FENCE_TAGS = {"python": {"python", "py"}, "java": {"java"}, "rust": {"rust", "rs"}}
 REPO_ROOT = Path(__file__).parent
 
 
@@ -59,12 +60,34 @@ def detect_language(prompt_path: str) -> str:
     return lang
 
 
-def extract_code(response_text: str) -> str:
-    blocks = re.findall(r"```\w*\n(.*?)```", response_text, re.DOTALL)
+def extract_code(response_text: str, lang: str) -> str:
+    """Extract the model's code from fenced blocks in its response.
+
+    A response can legitimately contain multiple fenced blocks that aren't all
+    code-under-test (e.g. an illustrative Cargo.toml snippet or a closing
+    `cargo test` usage note alongside the real lib.rs). Naively joining every
+    fenced block corrupts the saved file, so prefer blocks explicitly tagged
+    with the target language and only fall back to "all blocks" when none are
+    tagged at all.
+
+    Fence markers are matched only at the start of a line (``^```` with
+    `re.MULTILINE`) so that ``` sequences nested inside doc-comment examples
+    (e.g. Rust `///` doctest fences, which are indented/prefixed and thus never
+    at true line-start) don't prematurely close an outer block.
+    """
+    blocks = re.findall(r"^```(\w*)\n(.*?)^```", response_text, re.DOTALL | re.MULTILINE)
     if not blocks:
         print("\nWARNING: No fenced code blocks found in response. Saving raw response as code.")
         return response_text
-    return "\n".join(block.strip() for block in blocks)
+    accepted_tags = LANG_FENCE_TAGS.get(lang, set())
+    matching = [content for tag, content in blocks if tag.lower() in accepted_tags]
+    if matching:
+        if len(matching) > 1:
+            print(f"\nWARNING: {len(matching)} fenced '{lang}' code blocks found; concatenating all of them.")
+        return "\n".join(block.strip() for block in matching)
+    print(f"\nWARNING: No fenced block tagged '{lang}' found; falling back to all "
+          f"{len(blocks)} fenced block(s), which may include non-code snippets.")
+    return "\n".join(content.strip() for _, content in blocks)
 
 
 def run_eval(args):
@@ -154,7 +177,7 @@ def run_eval(args):
     out_dir.mkdir(parents=True, exist_ok=True)
     _write_trace(out_dir, args, prompt_text, reasoning_text, content_text, ttft,
                  total_time, reasoning_tokens, answer_tokens, completion_tokens, timings)
-    _write_code(out_dir, code_filename, content_text)
+    _write_code(out_dir, code_filename, content_text, lang)
 
 
 def _write_trace(out_dir, args, prompt_text, reasoning_text, content_text, ttft,
@@ -177,9 +200,9 @@ def _write_trace(out_dir, args, prompt_text, reasoning_text, content_text, ttft,
     print(f"\nTrace written to: {path}")
 
 
-def _write_code(out_dir, code_filename, content_text):
+def _write_code(out_dir, code_filename, content_text, lang):
     path = out_dir / code_filename
-    path.write_text(extract_code(content_text) + "\n")
+    path.write_text(extract_code(content_text, lang) + "\n")
     print(f"Code written to:  {path}")
 
 

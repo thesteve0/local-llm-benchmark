@@ -19,15 +19,18 @@ Graded against `evals/essay/rubric.md`. Source essays are the `## Response` sect
 | 2 | Qwen3.6-35B-A3B (Q6) | 574 | 5 | 5 | 4 | 5 | 5 | **24 / 25** |
 | 2 | Muse-Glimmer-30B (Q6) | 808 | 5 | 5 | 5 | 4 | 5 | **24 / 25** |
 | 5 | Nemotron-3.5-Lightning-30B-A3B (Q8) | 1088 | 5 | 5 | 5 | 5 | 3 | **23 / 25** |
-| 6 | Nemotron-3.5-Lightning-30B-A3B (Q6) | 1515 | 5 | 5 | 5 | 5 | 1 | **21 / 25** |
+| 5 | Ornith-1.5-35B-A3B (Q8) | 808 | 5 | 5 | 4 | 4 | 5 | **23 / 25** |
+| 7 | Nemotron-3.5-Lightning-30B-A3B (Q6) | 1515 | 5 | 5 | 5 | 5 | 1 | **21 / 25** |
 
 **Essay-quality ranking:** Qwen3.8 Q6 > (Qwen3.6 Q8 ≈ Qwen3.6 Q6 ≈ Muse-Glimmer Q6) >
-Nemotron Q8 > Nemotron Q6.
+(Nemotron Q8 ≈ Ornith Q8) > Nemotron Q6.
 
-The spread is narrow: on raw substance five of the six are excellent and nearly
+The spread is narrow: on raw substance six of the seven are excellent and nearly
 interchangeable. The ranking is decided almost entirely by **instruction-following on the
-length limit**, not by prose quality — both Nemotron runs write the most substantive essays
-in the set but are the only two that break the "< 1000 words" constraint.
+length limit** and header-heavy structure, not by prose quality — both Nemotron runs write
+the most substantive essays in the set but are the only two that break the "< 1000 words"
+constraint, while Ornith loses points on depth (one-sided SSM treatment) and structure
+(leans on markdown headings rather than flowing prose) despite landing safely in range.
 
 ---
 
@@ -93,7 +96,21 @@ Prose quality and code quality are not the same axis.
 | Structure & Tone | 5 | Well-organized, academic, coherent arc. |
 | Constraint Adherence | 3 | **1088 words — over the 1000-word ceiling by ~9%.** Substantive but overshoots the explicit limit. |
 
-## 6. Nemotron-3.5-Lightning-30B-A3B-UD-Q6_K_XL — 21 / 25 (1515 words)
+## 5 (tie). Ornith-1.5-35B-A3B-UD-Q8_K_XL — 23 / 25 (808 words)
+
+| Dimension | Score | Notes |
+|---|:--:|---|
+| Technical Accuracy | 5 | Correct throughout: `softmax(QK^T/√d)V`, O(n²d) time / O(n²) memory for attention, the continuous and discretized SSM recurrence (`h' = Ah + Bx`, `y = Ch`), Mamba's input-dependent `B, C, Δ`, and convolution/parallel-scan training. No errors. |
+| Topic Coverage | 5 | All three required aspects covered for both architectures, with dedicated sections for attention, complexity, and long-context implications, plus a hybrid-architectures note. |
+| Depth & Insight | 4 | Good trade-off discussion (Transformer expressiveness vs. compute cost; SSM efficiency vs. maturity of the ecosystem) but presents Mamba's selectivity as having resolved the older SSM long-range weakness without flagging the fixed-state retrieval/compression limitation the top essays raise — one-sided in the same way as the Qwen3.6 runs. |
+| Structure & Tone | 4 | Well-organized and accurate, but written as seven markdown-headed sections (`## Introduction`, `## The Attention Mechanism...`, etc.) rather than flowing essay prose — the same "leans on headings" deduction applied to Muse-Glimmer. |
+| Constraint Adherence | 5 | 808 words, comfortably in range. |
+
+**Note:** ties Nemotron Q8 for the middle of the pack. Both lose exactly one point apiece on
+different axes — Nemotron on the length constraint, Ornith on depth and structure — while
+matching everyone else on technical accuracy and coverage.
+
+## 7. Nemotron-3.5-Lightning-30B-A3B-UD-Q6_K_XL — 21 / 25 (1515 words)
 
 | Dimension | Score | Notes |
 |---|:--:|---|
