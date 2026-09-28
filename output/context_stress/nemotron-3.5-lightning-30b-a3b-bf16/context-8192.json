@@ -1,0 +1,13 @@
+{
+  "target_tokens": 8192,
+  "prompt_chars": 31682,
+  "prompt_tokens": 5432,
+  "answer": "",
+  "needle_found_exactly": false,
+  "generation_tokens": 32,
+  "prompt_eval_ms": 8020.391,
+  "prompt_eval_tps": 677.2737139623243,
+  "generation_ms": 1420.786,
+  "generation_tps": 21.818908688570975,
+  "wall_seconds": 9.45587716800219
+}

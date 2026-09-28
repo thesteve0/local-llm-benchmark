@@ -1,0 +1,14 @@
+{
+  "target_tokens": 8192,
+  "prompt_chars": 46370,
+  "calibrated_prompt_tokens": 7912,
+  "prompt_tokens": 7928,
+  "answer": "Here's a thinking process:\n\n1.  **Analyze User Input:**\n   - The user provides a long block of text that is repetitive: \"This is deterministic context filler for a long context validation request. It carries no answer and should be ignored while locating the marked record.\"\n   - This repeats many times (exactly 100 times based on my count, but the exact number doesn't matter much).\n   - At the very end, there's a specific instruction: \"The marked record is: NEMOTRON_CONTEXT_NEEDLE_739184.\"\n   - Then there's a",
+  "needle_found_exactly": false,
+  "generation_tokens": 128,
+  "prompt_eval_ms": 10964.083,
+  "prompt_eval_tps": 723.0882874564156,
+  "generation_ms": 5837.857,
+  "generation_tps": 21.754558222306574,
+  "wall_seconds": 16.806493873002182
+}
