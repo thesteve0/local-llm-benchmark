@@ -1,0 +1,15 @@
+{
+  "target_tokens": 8192,
+  "prompt_chars": 43000,
+  "calibrated_prompt_tokens": 7892,
+  "prompt_tokens": 7902,
+  "answer": "We have a user message that includes many filler lines (deterministic context filler) and then at the end says:\n\n\"The marked record is: LFM25_CONTEXT_NEEDLE_24B_A2B.\"\n\nThen \"End of context. Locate the marked record and reply with only this exact code: LFM25_CONTEXT_NEEDLE_24B_A2B\"\n\nThus we need to output exactly that code.\n\nWe must ignore filler lines. The user wants us to locate the marked record and reply with only that exact code.\n\nThus answer: \"LFM25_CONTEXT_NEEDLE_24",
+  "needle_found_exactly": false,
+  "needle_found_anywhere": true,
+  "generation_tokens": 128,
+  "prompt_eval_ms": 3542.326,
+  "prompt_eval_tps": 2230.737656556737,
+  "generation_ms": 1852.031,
+  "generation_tps": 68.5733662125526,
+  "wall_seconds": 5.399196433005272
+}

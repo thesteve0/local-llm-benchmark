@@ -1,0 +1,15 @@
+{
+  "target_tokens": 131072,
+  "prompt_chars": 707785,
+  "calibrated_prompt_tokens": 129552,
+  "prompt_tokens": 129562,
+  "answer": "We need to produce final answer: \"LFM25_CONTEXT_NEEDLE_24B_A2B\". The user gave a huge block of filler text, but the instruction says: \"This is deterministic context filler for a long context validation request. It carries no answer and should be ignored while locating the marked record.\"\n\nThus we need to locate the marked record (the phrase \"This is deterministic context filler for a long context validation request. It carries no answer and should be ignored while locating the marked record.\") The user says: \"Locate the marked record and reply with only this exact code:",
+  "needle_found_exactly": false,
+  "needle_found_anywhere": true,
+  "generation_tokens": 128,
+  "prompt_eval_ms": 235747.565,
+  "prompt_eval_tps": 549.5793774158388,
+  "generation_ms": 3332.656,
+  "generation_tps": 38.10774349347788,
+  "wall_seconds": 239.12603331099672
+}

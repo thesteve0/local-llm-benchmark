@@ -1,0 +1,15 @@
+{
+  "target_tokens": 32768,
+  "prompt_chars": 175957,
+  "calibrated_prompt_tokens": 32224,
+  "prompt_tokens": 32234,
+  "answer": "We have a huge block of repeated filler text lines, each identical: \"This is deterministic context filler for a long context validation request. It carries no answer and should be ignored while locating the marked record.\"\n\nThe user says at the end: \"The marked record is: LFM25_CONTEXT_NEEDLE_24B_A2B.\" Then instructs: \"reply with only this exact code: LFM25_CONTEXT_NEEDLE_24B_A2B\"\n\nThus we need to output exactly that code. The filler text is irrelevant.\n\nWe must not include any extra text, just the code",
+  "needle_found_exactly": false,
+  "needle_found_anywhere": true,
+  "generation_tokens": 128,
+  "prompt_eval_ms": 71427.593,
+  "prompt_eval_tps": 451.2821816633245,
+  "generation_ms": 11415.244,
+  "generation_tps": 11.12547397147183,
+  "wall_seconds": 82.85557000398694
+}

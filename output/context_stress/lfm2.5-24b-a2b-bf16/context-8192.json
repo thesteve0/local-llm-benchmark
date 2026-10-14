@@ -1,0 +1,15 @@
+{
+  "target_tokens": 8192,
+  "prompt_chars": 43000,
+  "calibrated_prompt_tokens": 7892,
+  "prompt_tokens": 7902,
+  "answer": "We have a user message that includes a huge amount of deterministic context filler text, which is basically repeated lines: \"This is deterministic context filler for a long context validation request. It carries no answer and should be ignored while locating the marked record.\"\n\nThen at some point, there's a line: \"The marked record is: LFM25_CONTEXT_NEEDLE_24B_A2B.\"\n\nAfter that, more filler text again.\n\nThe user says: \"End of context. Locate the marked record and reply with only this exact code: LFM25_CONTEXT_NEEDLE_24B_A",
+  "needle_found_exactly": false,
+  "needle_found_anywhere": true,
+  "generation_tokens": 128,
+  "prompt_eval_ms": 17541.568,
+  "prompt_eval_tps": 450.47284256458715,
+  "generation_ms": 11202.339,
+  "generation_tps": 11.336918120403249,
+  "wall_seconds": 28.748227553995093
+}

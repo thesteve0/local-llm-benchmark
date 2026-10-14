@@ -1,0 +1,15 @@
+{
+  "target_tokens": 98304,
+  "prompt_chars": 530611,
+  "calibrated_prompt_tokens": 97128,
+  "prompt_tokens": 97138,
+  "answer": "We need to parse the user's message. The user posted a huge block of repeated \"This is deterministic context filler for a long context validation request. It carries no answer and should be ignored while locating the marked record.\" many times, then at the end: \"End of context. Locate the marked record and reply with only this exact code: LFM25_CONTEXT_NEEDLE_24B_A2B\"\n\nSo we need to find the marked record in the context. The user says \"Locate the marked record\". In previous similar tasks, there is a pattern: The context includes a block of repeated filler",
+  "needle_found_exactly": false,
+  "needle_found_anywhere": true,
+  "generation_tokens": 128,
+  "prompt_eval_ms": 289893.963,
+  "prompt_eval_tps": 335.08114137582095,
+  "generation_ms": 12316.025,
+  "generation_tps": 10.311768610407984,
+  "wall_seconds": 302.2487247239915
+}

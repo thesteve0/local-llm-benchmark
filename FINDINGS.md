@@ -194,3 +194,62 @@ it on essay quality (23 vs. 24, on depth and header-heavy structure) and generat
 vs. ~51 t/s). Only a Q8 quant has been tested so far — no Q6 data point yet to compare the usual
 quant/speed tradeoff. Worth a second look once a lighter quant is benchmarked, but for now Qwen3.6
 remains the default pick on this hardware.
+
+
+## 6. LFM2.5-24B-A2B (BF16) — new round (2026-10-14)
+
+**Hardware/method:** same desktop (96 GB GPU offload, Vulkan llama.cpp 0.6.0/11429), full native
+131,072 ctx (hybrid conv+GQA model → small KV cache), flash-attn on; cold restart before every
+task; code evals temp 0.0; essay temp 0.1 (card-recommended sampling; GGUF metadata carries it).
+
+| Task | Result |
+|---|---|
+| Bubble sort Python | 11/11, 24/25 — mixed typing style; otherwise clean (early exit, n-i-1, correct typing import case) |
+| Bubble sort Java | 11/11, 24/25 — records + proper 3-way Integer/Long.compare; minor 'temp' lapse |
+| Bubble sort Rust | 0/11, 19/25 — **compile failure E0753**: second `//!` inner-doc block mid-file; extraction verified vs trace = model bug (mirrors Nemotron's fatal-but-good-code pattern) |
+| Essay | ~2,756 words — **worst length-constraint overshoot in the set** (2.7x over) |
+| Context stress ×5 | **0/5 exact** — 128-token budget exhausted by always-on reasoning (needle appears only truncated in reasoning) |
+
+**Perf:** gen 11.4–11.8 t/s across all tasks (~4x slower than Qwen3.6/Nemotron Q6/Q8, ~1.9x slower
+than Nemotron BF16); prompt eval 242–451 t/s (282 t/s at 129K context — strong prefill, very fast
+long-context probing: 29 s at 8K → 472 s at 129K wall).
+
+**Takeaways:** (1) BF16 costs too much on this iGPU; **Q8_0 (~24 GB, half the size) should be
+faster and is the queued next run.** (2) The always-think template inflates output tokens 4–5x —
+interactive agentic loops pay per reasoning token even at 2.45B active. (3) Code quality is
+strong (49/50 Py+Java combined, second only to Qwen3.6 Q8/Ornith) despite the slow tokenizer
+latency. Artifacts: per-run scorecards `evals/bubble-sort/*/lfm2.5-24b-a2b-bf16/`,
+essay trace `output/manual_eval/transformer_v_mamba_LFM2.5-24B-A2B-BF16.md`,
+context JSONs `output/context_stress/lfm2.5-24b-a2b-bf16/`.
+
+## 7. LFM2.5-24B-A2B (Q8_0) — new round (2026-10-14)
+
+Same desktop (AMD Ryzen AI MAX+ 395, 128 GB unified, Vulkan llama.cpp), full native
+131,072 ctx, `--gpu-layers all --flash-attn on`, cold restart per task, code evals at
+temperature 0.0, essay at 0.1. Same flag set as the BF16 round, only the quant tag
+changed (`llama serve -hf LiquidAI/LFM2.5-24B-A2B-GGUF:Q8_0`).
+
+| Task | Result | Quality |
+|---|--:|--:|
+| Python | 11/11 | **25/25** (best-in-set: consistent generic hints, NumPy docstring, tuple swap) |
+| Java | 0/11 (compile) | 21/25 (fatal `sorted[j]` list-indexing bug; logic otherwise correct) |
+| Rust | **11/11** | 24/25 (clean compile — reverses BF16's E0753; minor `if c { true } else { false }`) |
+| Essay | 700 words | 24/25 (squarely inside 500–1000 vs BF16's ~2,756-word blowout) |
+| Context stress | 0/5 exact | same 128-token reasoning-budget exhaustion as BF16 |
+
+**Performance:** generation **70.9–71.7 t/s** — ~6x faster than BF16 (11.4–11.8) and faster
+than every prior MoE run (45–54). Prompt eval 1,708–1,736 t/s on code prompts (~7x BF16);
+long-context prefill 2,231 t/s @ 8K → 550 t/s @ 129K (BF16: 450 → 282). Wall for the
+129,552-token prefill probe: 239s (BF16: 472s). Confirms iGPU inference here is
+memory-bandwidth-bound: halving the file sextupled throughput.
+
+**Takeaways:** (1) **Q8_0 is the right quant for this model on this hardware** — ~6x
+faster than BF16 with equal-or-better code quality (Py 25/25, Rust 11/11). (2) The
+always-think chat template is the remaining bottleneck: reasoning ≫ answer, 4–5x token
+inflation; a future DSpark draft model or --reasoning-budget cap would help agentic use.
+(3) Quant changed test outcomes: Rust went 0/11 → 11/11, Python 24 → 25, but Java flipped
+11/11 → 0/11 on a single-token indexing bug the model self-revised 4 times without
+catching — sampling at temperature 0.0 does not guarantee draft stability.
+Artifacts: scorecards `evals/bubble-sort/*/lfm2.5-24b-a2b-q8_0/`,
+essay trace `output/manual_eval/transformer_v_mamba_LFM2.5-24B-A2B-Q8_0.md`,
+context JSONs `output/context_stress/lfm2.5-24b-a2b-q8_0/`.

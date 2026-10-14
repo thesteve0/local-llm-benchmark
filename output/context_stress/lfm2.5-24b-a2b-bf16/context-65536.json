@@ -1,0 +1,15 @@
+{
+  "target_tokens": 65536,
+  "prompt_chars": 353284,
+  "calibrated_prompt_tokens": 64676,
+  "prompt_tokens": 64686,
+  "answer": "We need to parse the user's message. The user gave a huge block of repeated \"This is deterministic context filler for a long context validation request. It carries no answer and should be ignored while locating the marked record.\" repeated many times, then at the end: \"Locate the marked record and reply with only this exact code: LFM25_CONTEXT_NEEDLE_24B_A2B\". The user says: \"This is deterministic context filler for a long context validation request. It carries no answer and should be ignored while locating the marked record.\"\n\nWe need to locate the marked record. The marked",
+  "needle_found_exactly": false,
+  "needle_found_anywhere": true,
+  "generation_tokens": 128,
+  "prompt_eval_ms": 162001.805,
+  "prompt_eval_tps": 399.29184739639163,
+  "generation_ms": 11865.175,
+  "generation_tps": 10.703592656661195,
+  "wall_seconds": 173.8902995459939
+}

@@ -1,0 +1,15 @@
+{
+  "target_tokens": 32768,
+  "prompt_chars": 175957,
+  "calibrated_prompt_tokens": 32224,
+  "prompt_tokens": 32234,
+  "answer": "We have a prompt that includes many repeated filler lines, then at the end says:\n\n\"The marked record is: LFM25_CONTEXT_NEEDLE_24B_A2B\n\nThis is deterministic context filler for a long context validation request. It carries no answer and should be ignored while locating the marked record.\n\n... (repeated filler)\n\nEnd of context. Locate the marked record and reply with only this exact code: LFM25_CONTEXT_NEEDLE_24B_A2B\"\n\nThus we need to output exactly \"LFM25_CONTEXT_NEEDLE_24B_A2B\". The",
+  "needle_found_exactly": false,
+  "needle_found_anywhere": true,
+  "generation_tokens": 128,
+  "prompt_eval_ms": 18510.081,
+  "prompt_eval_tps": 1741.4294405302712,
+  "generation_ms": 2146.782,
+  "generation_tps": 59.15831230185458,
+  "wall_seconds": 20.66972214000998
+}
